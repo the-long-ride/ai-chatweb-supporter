@@ -9,9 +9,7 @@
   pointer-events: auto;
 }
 
-#cgpt-sidebar-resizer-handle[hidden] {
-  display: none !important;
-}
+#cgpt-sidebar-resizer-handle[hidden] { display: none !important; }
 
 #cgpt-sidebar-resizer-handle::after {
   content: '';
@@ -25,9 +23,7 @@
 }
 
 #cgpt-sidebar-resizer-handle:hover::after,
-html.cgpt-sidebar-resizer-dragging #cgpt-sidebar-resizer-handle::after {
-  opacity: 1;
-}
+html.cgpt-sidebar-resizer-dragging #cgpt-sidebar-resizer-handle::after { opacity: 1; }
 
 html.cgpt-sidebar-resizer-dragging,
 html.cgpt-sidebar-resizer-dragging * {
@@ -35,8 +31,6 @@ html.cgpt-sidebar-resizer-dragging * {
   user-select: none !important;
 }
 
-/* ChatGPT's Recents titles use an internal marquee clip viewport. Keep that
-   viewport tied to the actual menu-row width after --sidebar-width changes. */
 [data-sidebar-item="true"] [data-marquee-text="true"] {
   min-inline-size: 0 !important;
   inline-size: 100% !important;
@@ -50,10 +44,6 @@ html.cgpt-sidebar-resizer-dragging * {
   max-inline-size: 100% !important;
 }
 
-/* Project chats use a nested flex row where ChatGPT currently makes the
-   conversation title shrink-0 and the project label flex-1. Reverse that
-   allocation so the title owns the remaining row width and the project label
-   consumes only its text width (with a cap for unusually long project names). */
 #history [data-sidebar-item="true"] :has(> [data-marquee-text="true"]) {
   flex: 1 1 0% !important;
   min-inline-size: 0 !important;
@@ -70,10 +60,6 @@ html.cgpt-sidebar-resizer-dragging * {
   text-overflow: ellipsis !important;
 }
 
-/* Pinned conversations add a leading chat icon and, unlike Recents, the
-   first content group is not grow. Make that group claim the row's remaining
-   width so its marquee title expands when --sidebar-width grows. The
-   structural selector avoids Pinned's localized header/aria-label text. */
 [data-sidebar-item="true"] > div:first-child:has(> .icon + div [data-marquee-text="true"]) {
   flex: 1 1 0% !important;
   min-inline-size: 0 !important;

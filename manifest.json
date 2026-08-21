@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "AI Chat Web Supporter",
   "version": "1.1.0",
-  "description": "Resize the ChatGPT sidebar and queue text prompts to send automatically after each response finishes.",
+  "description": "Practical local tools for AI chat websites, currently supporting ChatGPT sidebar resizing and queued prompts.",
   "icons": {
     "16": "icons/icon16.png",
     "32": "icons/icon32.png",
@@ -14,7 +14,7 @@
   ],
   "action": {
     "default_title": "AI Chat Web Supporter settings",
-    "default_popup": "popup.html"
+    "default_popup": "src/popup/popup.html"
   },
   "content_scripts": [
     {
@@ -22,18 +22,26 @@
         "https://chatgpt.com/*"
       ],
       "js": [
-        "content.js",
-        "queue-core.js",
-        "queue-dom.js",
-        "queue-ui.js",
-        "queue-view.js",
-        "queue-content.js"
+        "src/shared/constants.js",
+        "src/shared/storage.js",
+        "src/sidebar/core.js",
+        "src/sidebar/dom.js",
+        "src/sidebar/controller.js",
+        "src/queue/core.js",
+        "src/queue/dom.js",
+        "src/queue/scope.js",
+        "src/queue/ui.js",
+        "src/queue/view.js",
+        "src/queue/controller.js"
       ],
       "css": [
-        "styles.css",
-        "queue-content.css"
+        "src/sidebar/styles.css",
+        "src/queue/styles.css"
       ],
       "run_at": "document_idle"
     }
-  ]
+  ],
+  "background": {
+    "service_worker": "src/background/service-worker.js"
+  }
 }
