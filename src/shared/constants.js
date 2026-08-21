@@ -3,6 +3,7 @@
 
   const STORAGE_KEYS = Object.freeze({
     sidebarWidth: 'cgptSidebarResizerWidth',
+    grokSidebarWidth: 'grokSidebarResizerWidth',
     messageQueue: 'cgptMessageQueue',
     queueShortcut: 'cgptQueueShortcut',
   });
