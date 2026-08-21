@@ -1,15 +1,10 @@
 (() => {
   'use strict';
 
-  const core = typeof module !== 'undefined' && module.exports
-    ? require('./queue-core.js')
-    : globalThis.CgptQueueCore;
-  const dom = typeof module !== 'undefined' && module.exports
-    ? require('./queue-dom.js')
-    : globalThis.CgptQueueDom;
-  const ui = typeof module !== 'undefined' && module.exports
-    ? require('./queue-ui.js')
-    : globalThis.CgptQueueUi;
+  const namespace = globalThis.AiChatWebSupporter || {};
+  const core = typeof module !== 'undefined' && module.exports ? require('./core.js') : namespace.queueCore;
+  const dom = typeof module !== 'undefined' && module.exports ? require('./dom.js') : namespace.queueDom;
+  const ui = typeof module !== 'undefined' && module.exports ? require('./ui.js') : namespace.queueUi;
 
   const ROOT_ID = 'cgpt-message-queue';
   const MODAL_ID = 'cgpt-message-queue-modal';
@@ -73,9 +68,7 @@
     }
 
     clearDropState() {
-      this.root?.querySelectorAll('.cgpt-queue-row.is-drop-target').forEach((row) => {
-        row.classList.remove('is-drop-target');
-      });
+      this.root?.querySelectorAll('.cgpt-queue-row.is-drop-target').forEach((row) => row.classList.remove('is-drop-target'));
     }
 
     updateOverflowIndicator(indicator, viewport, queueLength) {
@@ -101,9 +94,7 @@
       viewport.style.setProperty('--cgpt-queue-max-height', `${ui.queueViewportMaxHeightPx()}px`);
       viewport.setAttribute('role', 'list');
       viewport.setAttribute('aria-label', 'Queued messages, scroll for older queued items');
-      viewport.addEventListener('scroll', () => {
-        this.updateOverflowIndicator(indicator, viewport, queue.length);
-      }, { passive: true });
+      viewport.addEventListener('scroll', () => this.updateOverflowIndicator(indicator, viewport, queue.length), { passive: true });
 
       for (const { item, index } of queue.map((item, index) => ({ item, index })).reverse()) {
         const row = document.createElement('div');
@@ -169,11 +160,8 @@
         viewport.scrollTop = viewport.scrollHeight;
         this.updateOverflowIndicator(indicator, viewport, queue.length);
       };
-      if (typeof window.requestAnimationFrame === 'function') {
-        window.requestAnimationFrame(pinToNext);
-      } else {
-        pinToNext();
-      }
+      if (typeof window.requestAnimationFrame === 'function') window.requestAnimationFrame(pinToNext);
+      else pinToNext();
     }
 
     closeEditModal() {
@@ -229,9 +217,7 @@
       footer.append(cancel, save);
       dialog.append(title, textarea, footer);
       overlay.appendChild(dialog);
-      overlay.addEventListener('mousedown', (event) => {
-        if (event.target === overlay) this.closeEditModal();
-      });
+      overlay.addEventListener('mousedown', (event) => { if (event.target === overlay) this.closeEditModal(); });
       overlay.addEventListener('keydown', (event) => {
         if (event.key === 'Escape') this.closeEditModal();
         if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') save.click();
@@ -273,10 +259,7 @@
       undo.classList.add('cgpt-queue-undo-button');
       toast.append(label, undo);
       document.body.appendChild(toast);
-      this.undoTimer = window.setTimeout(
-        () => this.clearUndo(),
-        Math.max(0, this.undoRecord.expiresAt - Date.now())
-      );
+      this.undoTimer = window.setTimeout(() => this.clearUndo(), Math.max(0, this.undoRecord.expiresAt - Date.now()));
     }
 
     deleteItem(id) {
@@ -296,5 +279,8 @@
 
   const api = { QueueView };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
-  if (typeof globalThis !== 'undefined') globalThis.CgptQueueView = api;
+  if (typeof globalThis !== 'undefined') {
+    const shared = globalThis.AiChatWebSupporter ||= {};
+    shared.queueView = api;
+  }
 })();
