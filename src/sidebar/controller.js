@@ -15,12 +15,22 @@
     ? require('./dom.js')
     : namespace.sidebarDom;
 
-  const { sidebarWidth: STORAGE_KEY } = constants.STORAGE_KEYS;
+  const { sidebarWidth: CHATGPT_STORAGE_KEY, grokSidebarWidth: GROK_STORAGE_KEY } = constants.STORAGE_KEYS;
+
+  function resolveSidebarSite(hostname = globalThis.location?.hostname || '') {
+    const normalized = String(hostname || '').toLowerCase();
+    if (normalized === 'grok.com' || normalized.endsWith('.grok.com')) {
+      return { id: 'grok', storageKey: GROK_STORAGE_KEY, label: 'Resize Grok sidebar' };
+    }
+    return { id: 'chatgpt', storageKey: CHATGPT_STORAGE_KEY, label: 'Resize ChatGPT sidebar' };
+  }
 
   class SidebarController {
     constructor({ win = globalThis.window, doc = globalThis.document } = {}) {
       this.win = win;
       this.doc = doc;
+      this.site = resolveSidebarSite(win?.location?.hostname || globalThis.location?.hostname || '');
+      this.storageKey = this.site.storageKey;
       this.currentSidebar = null;
       this.handle = null;
       this.savedWidth = null;
@@ -41,8 +51,8 @@
     }
 
     async loadSavedWidth() {
-      const result = await storage.get([STORAGE_KEY]);
-      this.savedWidth = core.parseStoredWidth(result?.[STORAGE_KEY]);
+      const result = await storage.get([this.storageKey]);
+      this.savedWidth = core.parseStoredWidth(result?.[this.storageKey]);
       if (this.savedWidth !== null && this.currentSidebar?.isConnected) this.applyWidth(this.currentSidebar, this.savedWidth);
       this.scheduleHandlePosition();
     }
@@ -51,13 +61,13 @@
       const parsed = core.parseStoredWidth(width);
       if (parsed === null) return;
       this.savedWidth = parsed;
-      await storage.set({ [STORAGE_KEY]: parsed });
+      await storage.set({ [this.storageKey]: parsed });
     }
 
     async resetWidth() {
       this.savedWidth = null;
       this.clearWidth();
-      await storage.remove(STORAGE_KEY);
+      await storage.remove(this.storageKey);
       this.scheduleHandlePosition();
     }
 
@@ -68,7 +78,7 @@
       element.id = dom.HANDLE_ID;
       element.setAttribute('role', 'separator');
       element.setAttribute('aria-orientation', 'vertical');
-      element.setAttribute('aria-label', 'Resize ChatGPT sidebar');
+      element.setAttribute('aria-label', this.site.label);
       element.setAttribute('aria-valuemin', String(core.MIN_WIDTH));
       element.setAttribute('aria-valuemax', String(core.MAX_WIDTH));
       element.hidden = true;
@@ -206,7 +216,7 @@
     }
   }
 
-  const api = { SidebarController };
+  const api = { SidebarController, resolveSidebarSite };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   if (typeof globalThis !== 'undefined') {
     const shared = globalThis.AiChatWebSupporter ||= {};

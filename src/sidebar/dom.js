@@ -15,8 +15,11 @@
     '[class*="sidebar" i]',
     '[id*="sidebar" i]',
     '[data-testid*="sidebar" i]',
+    '[data-sidebar="sidebar"]',
+    '[data-side="left"][data-variant="sidebar"]',
   ].join(',');
   const NAV_SELECTOR = 'nav, [role="navigation"]';
+  const GROK_SIDEBAR_SELECTOR = '[data-side="left"][data-variant="sidebar"] [data-sidebar="sidebar"]';
 
   function candidateMetrics(element, win = globalThis.window, doc = globalThis.document) {
     const rect = element.getBoundingClientRect();
@@ -53,6 +56,9 @@
   }
 
   function findSidebar(doc = globalThis.document, win = globalThis.window) {
+    const grokSidebar = doc.querySelector?.(GROK_SIDEBAR_SELECTOR);
+    if (grokSidebar && candidateMetrics(grokSidebar, win, doc).visible) return grokSidebar;
+
     const candidates = new Set(doc.querySelectorAll(CANDIDATE_SELECTOR));
     addNavigationAncestors(candidates, doc, win);
     let best = null;
@@ -96,6 +102,7 @@
     BOTTOM_SAFETY_INSET,
     CANDIDATE_SELECTOR,
     NAV_SELECTOR,
+    GROK_SIDEBAR_SELECTOR,
     candidateMetrics,
     addNavigationAncestors,
     findSidebar,
