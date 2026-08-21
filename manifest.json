@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "ChatGPT Sidebar Resizer",
-  "version": "1.0.0",
-  "description": "Drag the ChatGPT sidebar edge to resize it and remember your preferred width.",
+  "name": "AI Chat Web Supporter",
+  "version": "1.1.0",
+  "description": "Resize the ChatGPT sidebar and queue text prompts to send automatically after each response finishes.",
   "icons": {
     "16": "icons/icon16.png",
     "32": "icons/icon32.png",
@@ -12,16 +12,26 @@
   "permissions": [
     "storage"
   ],
+  "action": {
+    "default_title": "AI Chat Web Supporter settings",
+    "default_popup": "popup.html"
+  },
   "content_scripts": [
     {
       "matches": [
         "https://chatgpt.com/*"
       ],
       "js": [
-        "content.js"
+        "content.js",
+        "queue-core.js",
+        "queue-dom.js",
+        "queue-ui.js",
+        "queue-view.js",
+        "queue-content.js"
       ],
       "css": [
-        "styles.css"
+        "styles.css",
+        "queue-content.css"
       ],
       "run_at": "document_idle"
     }
