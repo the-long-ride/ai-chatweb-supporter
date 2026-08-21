@@ -5,17 +5,9 @@
   const ROW_HEIGHT_PX = 34;
   const ROW_GAP_PX = 4;
 
-  function hasQueueOverflow(count) {
-    return Number(count) > MAX_VISIBLE_ITEMS;
-  }
-
-  function shouldShowHiddenAboveIndicator(count, scrollTop) {
-    return hasQueueOverflow(count) && Number(scrollTop) > 1;
-  }
-
-  function queueViewportMaxHeightPx() {
-    return (MAX_VISIBLE_ITEMS * ROW_HEIGHT_PX) + ((MAX_VISIBLE_ITEMS - 1) * ROW_GAP_PX);
-  }
+  function hasQueueOverflow(count) { return Number(count) > MAX_VISIBLE_ITEMS; }
+  function shouldShowHiddenAboveIndicator(count, scrollTop) { return hasQueueOverflow(count) && Number(scrollTop) > 1; }
+  function queueViewportMaxHeightPx() { return (MAX_VISIBLE_ITEMS * ROW_HEIGHT_PX) + ((MAX_VISIBLE_ITEMS - 1) * ROW_GAP_PX); }
 
   const ICONS = Object.freeze({
     edit: '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" aria-hidden="true"><path d="M20,16v4a2,2,0,0,1-2,2H4a2,2,0,0,1-2-2V6A2,2,0,0,1,4,4H8" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/><polygon fill="none" points="12.5 15.8 22 6.2 17.8 2 8.3 11.5 8 16 12.5 15.8" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg>',
@@ -26,5 +18,8 @@
 
   const api = { MAX_VISIBLE_ITEMS, ROW_HEIGHT_PX, ROW_GAP_PX, hasQueueOverflow, shouldShowHiddenAboveIndicator, queueViewportMaxHeightPx, ICONS };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
-  if (typeof globalThis !== 'undefined') globalThis.CgptQueueUi = api;
+  if (typeof globalThis !== 'undefined') {
+    const namespace = globalThis.AiChatWebSupporter ||= {};
+    namespace.queueUi = api;
+  }
 })();

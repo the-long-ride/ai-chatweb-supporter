@@ -7,19 +7,16 @@
     'div[contenteditable="true"][data-virtualkeyboard="true"]',
     'form div[contenteditable="true"]',
   ];
-
   const SEND_SELECTORS = [
     'button[data-testid="send-button"]',
     'button[aria-label="Send prompt"]',
     'button[type="submit"]',
   ];
-
   const STOP_SELECTORS = [
     'button[data-testid="stop-button"]',
     'button[aria-label*="Stop generating" i]',
     'button[aria-label*="Stop streaming" i]',
   ];
-
   const ATTACHMENT_SELECTOR = [
     '[data-testid*="attachment" i]',
     '[data-testid*="file-preview" i]',
@@ -31,14 +28,8 @@
   function getComposerText(composer) {
     if (!composer) return '';
     const tagName = String(composer.tagName || '').toUpperCase();
-    if (tagName === 'TEXTAREA' || tagName === 'INPUT') {
-      return typeof composer.value === 'string' ? composer.value : '';
-    }
-    if (composer.isContentEditable) {
-      return typeof composer.innerText === 'string'
-        ? composer.innerText
-        : String(composer.textContent || '');
-    }
+    if (tagName === 'TEXTAREA' || tagName === 'INPUT') return typeof composer.value === 'string' ? composer.value : '';
+    if (composer.isContentEditable) return typeof composer.innerText === 'string' ? composer.innerText : String(composer.textContent || '');
     return String(composer.textContent || '');
   }
 
@@ -58,12 +49,7 @@
   }
 
   function composerScope(composer) {
-    return (
-      composer?.closest?.('form') ||
-      composer?.closest?.('[data-type="unified-composer"]') ||
-      composer?.parentElement ||
-      null
-    );
+    return composer?.closest?.('form') || composer?.closest?.('[data-type="unified-composer"]') || composer?.parentElement || null;
   }
 
   function firstVisible(scope, selectors, win = globalThis.window) {
@@ -135,9 +121,7 @@
           selection.removeAllRanges();
           selection.addRange(range);
           inserted = doc.execCommand('insertText', false, next);
-        } catch {
-          inserted = false;
-        }
+        } catch { inserted = false; }
       }
       if (inserted) return true;
       composer.textContent = next;
@@ -147,11 +131,7 @@
     let event;
     try {
       const InputEventCtor = view?.InputEvent || view?.Event;
-      event = new InputEventCtor('input', {
-        bubbles: true,
-        inputType: next ? 'insertText' : 'deleteContentBackward',
-        data: next || null,
-      });
+      event = new InputEventCtor('input', { bubbles: true, inputType: next ? 'insertText' : 'deleteContentBackward', data: next || null });
     } catch {
       event = new (view?.Event || Event)('input', { bubbles: true });
     }
@@ -174,5 +154,8 @@
   };
 
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
-  if (typeof globalThis !== 'undefined') globalThis.CgptQueueDom = api;
+  if (typeof globalThis !== 'undefined') {
+    const namespace = globalThis.AiChatWebSupporter ||= {};
+    namespace.queueDom = api;
+  }
 })();
