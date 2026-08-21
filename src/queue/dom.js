@@ -1,30 +1,6 @@
 (() => {
   'use strict';
 
-  const COMPOSER_SELECTORS = [
-    '#prompt-textarea',
-    'textarea[data-testid="prompt-textarea"]',
-    'div[contenteditable="true"][data-virtualkeyboard="true"]',
-    'form div[contenteditable="true"]',
-  ];
-  const SEND_SELECTORS = [
-    'button[data-testid="send-button"]',
-    'button[aria-label="Send prompt"]',
-    'button[type="submit"]',
-  ];
-  const STOP_SELECTORS = [
-    'button[data-testid="stop-button"]',
-    'button[aria-label*="Stop generating" i]',
-    'button[aria-label*="Stop streaming" i]',
-  ];
-  const ATTACHMENT_SELECTOR = [
-    '[data-testid*="attachment" i]',
-    '[data-testid*="file-preview" i]',
-    '[data-testid*="file-thumbnail" i]',
-    'button[aria-label*="Remove attachment" i]',
-    'button[aria-label*="Remove file" i]',
-  ].join(',');
-
   function getComposerText(composer) {
     if (!composer) return '';
     const tagName = String(composer.tagName || '').toUpperCase();
@@ -48,10 +24,6 @@
     return !style || style.pointerEvents !== 'none';
   }
 
-  function composerScope(composer) {
-    return composer?.closest?.('form') || composer?.closest?.('[data-type="unified-composer"]') || composer?.parentElement || null;
-  }
-
   function firstVisible(scope, selectors, win = globalThis.window) {
     if (!scope?.querySelectorAll) return null;
     for (const selector of selectors) {
@@ -63,26 +35,16 @@
     return null;
   }
 
-  function findComposer(doc = globalThis.document, win = globalThis.window) {
-    return firstVisible(doc, COMPOSER_SELECTORS, win);
-  }
-
-  function findSendButton(composer, doc = globalThis.document, win = globalThis.window) {
-    return firstVisible(composerScope(composer) || doc, SEND_SELECTORS, win);
-  }
-
-  function findStopButton(composer, doc = globalThis.document, win = globalThis.window) {
-    const local = firstVisible(composerScope(composer) || doc, STOP_SELECTORS, win);
-    return local || firstVisible(doc, STOP_SELECTORS, win);
-  }
-
-  function hasComposerAttachments(composer) {
-    const scope = composerScope(composer);
-    if (!scope?.querySelectorAll) return false;
-    for (const input of scope.querySelectorAll('input[type="file"]')) {
-      if (input?.files?.length) return true;
-    }
-    return Boolean(scope.querySelector?.(ATTACHMENT_SELECTOR));
+  function themeContext(element, win = globalThis.window) {
+    const style = element && win?.getComputedStyle ? win.getComputedStyle(element) : null;
+    return {
+      color: style?.color || '',
+      background: style?.backgroundColor || '',
+      borderColor: style?.borderColor || '',
+      borderRadius: style?.borderRadius || '',
+      fontFamily: style?.fontFamily || '',
+      colorScheme: style?.colorScheme || '',
+    };
   }
 
   function classifySendAttempt({ busy, composerText, queuedText, sendReady }) {
@@ -139,23 +101,7 @@
     return true;
   }
 
-  const api = {
-    getComposerText,
-    isElementVisible,
-    isButtonReady,
-    composerScope,
-    findComposer,
-    findSendButton,
-    findStopButton,
-    hasComposerAttachments,
-    classifySendAttempt,
-    canPrepareQueuedSend,
-    setComposerText,
-  };
-
+  const api = { getComposerText, setComposerText, isElementVisible, isButtonReady, firstVisible, themeContext, classifySendAttempt, canPrepareQueuedSend };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
-  if (typeof globalThis !== 'undefined') {
-    const namespace = globalThis.AiChatWebSupporter ||= {};
-    namespace.queueDom = api;
-  }
+  if (typeof globalThis !== 'undefined') (globalThis.AiChatWebSupporter ||= {}).queueDom = api;
 })();

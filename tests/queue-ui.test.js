@@ -1,26 +1,17 @@
-const test = require('node:test');
-const assert = require('node:assert/strict');
-const ui = require('../src/queue/ui.js');
+const test=require('node:test');const assert=require('node:assert/strict');const ui=require('../src/queue/ui.js');
+test('queue viewport remains five items',()=>{assert.equal(ui.MAX_VISIBLE_ITEMS,5);assert.equal(ui.queueViewportMaxHeightPx(),186);});
+test('undo countdown exposes seconds and shrinking ratio',()=>{assert.deepEqual(ui.undoCountdown({expiresAt:6000,now:1000}),{seconds:5,ratio:1});const c=ui.undoCountdown({expiresAt:6000,now:5001});assert.equal(c.seconds,1);assert.ok(c.ratio>0&&c.ratio<0.2);assert.deepEqual(ui.undoCountdown({expiresAt:6000,now:6000}),{seconds:0,ratio:0});});
 
-test('queue viewport is capped at five visible items', () => {
-  assert.equal(ui.MAX_VISIBLE_ITEMS,5);
-  assert.equal(ui.hasQueueOverflow(5),false);
-  assert.equal(ui.hasQueueOverflow(6),true);
-  assert.equal(ui.queueViewportMaxHeightPx(),186);
-});
-
-test('up-arrow is shown only while overflow items remain hidden above', () => {
-  assert.equal(ui.shouldShowHiddenAboveIndicator(6,40),true);
-  assert.equal(ui.shouldShowHiddenAboveIndicator(6,0),false);
-  assert.equal(ui.shouldShowHiddenAboveIndicator(5,40),false);
-});
-
-test('all action icons are sanitized and theme-aware', () => {
+test('overflow policy and action icons remain stable', () => {
+  assert.equal(ui.hasQueueOverflow(5), false);
+  assert.equal(ui.hasQueueOverflow(6), true);
+  assert.equal(ui.shouldShowHiddenAboveIndicator(6, 40), true);
+  assert.equal(ui.shouldShowHiddenAboveIndicator(6, 0), false);
   for (const name of ['edit','delete','undo','up']) {
-    const svg=ui.ICONS[name];
-    assert.match(svg,/^<svg\b/);
-    assert.doesNotMatch(svg,/SVGRepo_/);
-    assert.doesNotMatch(svg,/id=/);
-    assert.match(svg,/currentColor/);
+    const svg = ui.ICONS[name];
+    assert.match(svg, /^<svg\b/);
+    assert.doesNotMatch(svg, /SVGRepo_/);
+    assert.doesNotMatch(svg, /id=/);
+    assert.match(svg, /currentColor/);
   }
 });

@@ -19,6 +19,12 @@
     });
   }
 
+  function normalizeQueueState(value) {
+    if (Array.isArray(value)) return { paused: false, items: normalizeQueue(value) };
+    if (!value || typeof value !== 'object') return { paused: false, items: [] };
+    return { paused: Boolean(value.paused), items: normalizeQueue(value.items) };
+  }
+
   function defaultIdFactory() {
     const cryptoApi = globalThis.crypto;
     if (cryptoApi && typeof cryptoApi.randomUUID === 'function') return cryptoApi.randomUUID();
@@ -75,6 +81,7 @@
     DEFAULT_SHORTCUT,
     DEFAULT_UNDO_TTL_MS,
     normalizeQueue,
+    normalizeQueueState,
     createQueueItem,
     reorderQueue,
     normalizeShortcut,
@@ -85,8 +92,5 @@
   };
 
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
-  if (typeof globalThis !== 'undefined') {
-    const namespace = globalThis.AiChatWebSupporter ||= {};
-    namespace.queueCore = api;
-  }
+  if (typeof globalThis !== 'undefined') (globalThis.AiChatWebSupporter ||= {}).queueCore = api;
 })();
