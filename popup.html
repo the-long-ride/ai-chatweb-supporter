@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI Chat Web Supporter</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <main class="popup-shell">
+    <header class="popup-header">
+      <div class="eyebrow">AI CHAT WEB SUPPORTER</div>
+      <h1>Queue shortcut</h1>
+      <p>Choose the keybinding that moves the current text prompt into the local queue.</p>
+    </header>
+
+    <fieldset class="shortcut-list" aria-label="Queue shortcut">
+      <label class="shortcut-row">
+        <span class="shortcut-copy">
+          <strong>Ctrl + Enter</strong>
+          <small>Queue the current prompt</small>
+        </span>
+        <input type="radio" name="queue-shortcut" value="ctrl-enter">
+      </label>
+      <label class="shortcut-row">
+        <span class="shortcut-copy">
+          <strong>Alt + Enter</strong>
+          <small>Queue the current prompt</small>
+        </span>
+        <input type="radio" name="queue-shortcut" value="alt-enter">
+      </label>
+    </fieldset>
+
+    <footer class="popup-footer">
+      Text only · stored locally · no network access
+    </footer>
+  </main>
+
+  <script src="queue-core.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>
