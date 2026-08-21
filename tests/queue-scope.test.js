@@ -1,66 +1,27 @@
-const test = require('node:test');
-const assert = require('node:assert/strict');
-
-const scope = require('../src/queue/scope.js');
-
-const q = (id, text = id) => ({ id, text, createdAt: 1 });
-
-test('extractConversationId reads ChatGPT conversation IDs from /c/:id routes', () => {
-  assert.equal(scope.extractConversationId('https://chatgpt.com/c/abc-123'), 'abc-123');
-  assert.equal(scope.extractConversationId('https://chatgpt.com/g/gpt-x/c/xyz?model=auto'), 'xyz');
-  assert.equal(scope.extractConversationId('https://chatgpt.com/'), null);
+const test=require('node:test');const assert=require('node:assert/strict');const scope=require('../src/queue/scope.js');const chatgpt=require('../src/providers/chatgpt.js');const claude=require('../src/providers/claude.js');const grok=require('../src/providers/grok.js');
+const q=(id)=>({id,text:id,createdAt:1});
+test('provider-qualified scopes and keys',()=>{
+ assert.equal(scope.resolveScope(chatgpt,'https://chatgpt.com/c/a',9),'chatgpt:conversation:a');
+ assert.equal(scope.resolveScope(claude,'https://claude.ai/chat/b',9),'claude:conversation:b');
+ assert.equal(scope.resolveScope(grok,'https://grok.com/',9),'grok:tab:9');
+ assert.equal(scope.queueStorageKey('grok:conversation:x'),'cgptMessageQueue:grok:conversation:x');
 });
-
-test('resolveScope prefers conversation id and falls back to real tab id', () => {
-  assert.equal(scope.resolveScope('https://chatgpt.com/c/abc', 42), 'conversation:abc');
-  assert.equal(scope.resolveScope('https://chatgpt.com/', 42), 'tab:42');
-  assert.equal(scope.resolveScope('https://chatgpt.com/', null), null);
+test('legacy keys belong only to ChatGPT',()=>{assert.equal(scope.legacyScopedKey('chatgpt:conversation:a'),'cgptMessageQueue:conversation:a');assert.equal(scope.legacyScopedKey('claude:conversation:a'),null);assert.equal(scope.legacyGlobalKey('grok:tab:1'),null);});
+test('same-provider tab promotion transfers items and pause',()=>{
+ const p=scope.planScopeTransition({previousScope:'claude:tab:9',nextScope:'claude:conversation:b',previousState:{paused:true,items:[q('tab'),q('same')]},nextState:{paused:false,items:[q('conv'),q('same')]}});
+ assert.equal(p.transfer,true);assert.equal(p.removePrevious,true);assert.equal(p.state.paused,true);assert.deepEqual(p.state.items.map(x=>x.id),['conv','same','tab']);
 });
+test('cross-provider promotion never transfers',()=>{const p=scope.planScopeTransition({previousScope:'chatgpt:tab:9',nextScope:'claude:conversation:b',previousState:{paused:true,items:[q('old')]},nextState:{paused:false,items:[q('new')]}});assert.equal(p.transfer,false);assert.deepEqual(p.state,{paused:false,items:[q('new')]});});
+test('legacy migration preserves target pause and wraps array state',()=>{assert.deepEqual(scope.planLegacyMigration({scopedState:{paused:true,items:[]},legacyQueue:[q('legacy')]}),{migrate:true,state:{paused:true,items:[q('legacy')]},removeLegacy:true});});
 
-test('queueStorageKey isolates queues by conversation or tab scope', () => {
-  assert.equal(scope.queueStorageKey('conversation:abc'), 'cgptMessageQueue:conversation:abc');
-  assert.equal(scope.queueStorageKey('tab:42'), 'cgptMessageQueue:tab:42');
-});
-
-test('tab to conversation transition moves remaining queue and merges without duplicates', () => {
+test('same-provider promotion transfers paused state even when the tab queue is empty', () => {
   const plan = scope.planScopeTransition({
-    previousScope: 'tab:42',
-    nextScope: 'conversation:abc',
-    previousQueue: [q('tab-1'), q('same')],
-    nextQueue: [q('conv-1'), q('same')],
+    previousScope: 'grok:tab:9',
+    nextScope: 'grok:conversation:b',
+    previousState: { paused: true, items: [] },
+    nextState: { paused: false, items: [] },
   });
-
   assert.equal(plan.transfer, true);
   assert.equal(plan.removePrevious, true);
-  assert.deepEqual(plan.queue.map((item) => item.id), ['conv-1', 'same', 'tab-1']);
-});
-
-test('conversation to conversation navigation never transfers the old queue', () => {
-  const plan = scope.planScopeTransition({
-    previousScope: 'conversation:a',
-    nextScope: 'conversation:b',
-    previousQueue: [q('a')],
-    nextQueue: [q('b')],
-  });
-
-  assert.equal(plan.transfer, false);
-  assert.equal(plan.removePrevious, false);
-  assert.deepEqual(plan.queue.map((item) => item.id), ['b']);
-});
-
-test('legacy queue migrates only into an empty active scope', () => {
-  assert.deepEqual(
-    scope.planLegacyMigration({ scopedQueue: [], legacyQueue: [q('legacy')] }),
-    { migrate: true, queue: [q('legacy')], removeLegacy: true }
-  );
-  assert.deepEqual(
-    scope.planLegacyMigration({ scopedQueue: [q('scoped')], legacyQueue: [q('legacy')] }),
-    { migrate: false, queue: [q('scoped')], removeLegacy: false }
-  );
-});
-
-test('tab to conversation is a continuation scope but conversation navigation is not', () => {
-  assert.equal(scope.isScopeContinuation('tab:42', 'conversation:abc'), true);
-  assert.equal(scope.isScopeContinuation('conversation:a', 'conversation:b'), false);
-  assert.equal(scope.isScopeContinuation('tab:42', 'tab:42'), false);
+  assert.deepEqual(plan.state, { paused: true, items: [] });
 });

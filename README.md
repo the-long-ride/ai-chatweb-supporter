@@ -1,31 +1,24 @@
 # AI Chat Web Supporter
 
-A dependency-free Chromium extension for practical local enhancements across AI chat websites. It currently supports **ChatGPT**, with the architecture and branding designed for future providers such as Claude, Grok, Gemini, and others.
+A dependency-free Chromium extension with local productivity tools for **ChatGPT, Claude, and Grok**.
 
 ## Features
 
-- Resize the ChatGPT sidebar from **220–700 px** and restore the native width with a double-click.
-- Queue text prompts with **Ctrl + Enter** or **Alt + Enter**.
-- Send queued prompts sequentially after each AI response finishes.
-- Keep each queue isolated to its ChatGPT conversation; new/unsaved chats use a per-tab fallback until a conversation ID exists.
-- Keep up to **5 queued messages visible** with scrolling for longer queues.
-- Drag to reorder, edit in place, delete, and undo deletion for 5 seconds.
-- Pause automatic queue dispatch while a draft or attachment is present.
-- Store sidebar width, queue data, and shortcut choice only in `chrome.storage.local`.
-- Use no analytics, telemetry, external dependencies, or extension-originated network requests.
+- Queue text prompts on **ChatGPT, Claude, and Grok** with one shared **Ctrl + Enter** or **Alt + Enter** setting.
+- When the AI is idle and the queue is empty, the shortcut behaves like a normal send. If the AI is responding/generating, it queues the prompt instead.
+- Keep queues isolated per provider and conversation; new chats use a per-tab fallback until a conversation ID exists.
+- Pause or resume automatic queue dispatch per conversation; paused state persists and follows a new chat from tab scope to conversation scope.
+- Keep up to **5 queued messages visible**, with drag reorder, edit, delete, and a 5-second animated undo countdown.
+- Pause automatic replay while a draft or attachment would make dispatch unsafe.
+- Resize the **ChatGPT sidebar only** from **220–700 px**; Claude and Grok receive queue support only.
+- Store queue state, shortcut choice, and sidebar width only in `chrome.storage.local`.
 
 ## Install
 
 1. Clone or download this repository.
-2. Open your Chromium browser's Extensions page and enable **Developer mode**.
+2. Open the Chromium Extensions page and enable **Developer mode**.
 3. Choose **Load unpacked** and select the folder containing `manifest.json`.
-4. Open or reload `https://chatgpt.com/`.
-
-## Usage
-
-Drag the right edge of the ChatGPT sidebar to resize it. Open the extension popup to choose the queue shortcut, type a prompt, then press that shortcut to add it to the local queue. Item **1** sends next when ChatGPT is idle. Queues follow the current conversation; before ChatGPT creates a conversation ID, the queue uses the current tab as a fallback.
-
-Queue replay is text-only; pending files or images are never attached to an automatically queued prompt.
+4. Open or reload ChatGPT, Claude, or Grok.
 
 ## Tests
 
@@ -35,4 +28,4 @@ node --test tests/*.test.js
 
 ## Privacy
 
-The extension currently runs only on `https://chatgpt.com/*` and requests only Chromium's `storage` permission. All extension state remains local to the browser.
+The extension requests only Chromium's `storage` permission and keeps extension state in local browser storage.
