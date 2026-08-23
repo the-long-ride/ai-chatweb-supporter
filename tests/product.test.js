@@ -1,3 +1,3 @@
 const test=require('node:test');const assert=require('node:assert/strict');const fs=require('node:fs');const path=require('node:path');const manifest=require('../manifest.json');const readme=fs.readFileSync(path.resolve(__dirname,'../README.md'),'utf8');
-test('branding/version stable',()=>{assert.equal(manifest.name,'AI Chat Web Supporter');assert.equal(manifest.version,'1.1.1');});
+test('branding/version stable',()=>{assert.equal(manifest.name,'AI Chat Web Supporter');assert.equal(manifest.version,'1.1.2');});
 test('compact README documents three providers and queue/sidebar semantics',()=>{assert.match(readme,/ChatGPT.*Claude.*Grok/i);assert.match(readme,/ChatGPT and Grok sidebars|ChatGPT.*Grok.*sidebar/i);assert.match(readme,/Claude.*queue-only|queue-only.*Claude/i);assert.match(readme,/Pause|pause/i);assert.match(readme,/AI.*working|responding|generating/i);assert.match(readme,/node --test tests\/\*\.test\.js/);assert.ok(readme.length<3000);});

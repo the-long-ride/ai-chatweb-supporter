@@ -3,7 +3,7 @@ const sidebarPrefix=['src/shared/constants.js','src/shared/storage.js','src/side
 const queueRuntime=(provider)=>['src/queue/core.js','src/queue/dom.js',`src/providers/${provider}.js`,'src/providers/registry.js','src/queue/scope.js','src/queue/ui.js','src/queue/view.js','src/queue/controller.js'];
 const sidebarAndQueue=(provider)=>[...sidebarPrefix,...queueRuntime(provider)];
 const queueOnly=(provider)=>['src/shared/constants.js','src/shared/storage.js',...queueRuntime(provider)];
-test('manifest version and exact three provider entries',()=>{assert.equal(manifest.version,'1.1.1');assert.equal(manifest.content_scripts.length,3);assert.deepEqual(manifest.content_scripts.map(x=>x.matches[0]),['https://chatgpt.com/*','https://claude.ai/*','https://grok.com/*']);});
+test('manifest version and exact three provider entries',()=>{assert.equal(manifest.version,'1.1.2');assert.equal(manifest.content_scripts.length,3);assert.deepEqual(manifest.content_scripts.map(x=>x.matches[0]),['https://chatgpt.com/*','https://claude.ai/*','https://grok.com/*']);});
 test('content script order gives sidebar resizing to ChatGPT and Grok only',()=>{const [c,cl,g]=manifest.content_scripts;assert.deepEqual(c.js,sidebarAndQueue('chatgpt'));assert.deepEqual(cl.js,queueOnly('claude'));assert.deepEqual(g.js,sidebarAndQueue('grok'));assert.deepEqual(c.css,['src/sidebar/styles.css','src/queue/styles.css']);assert.deepEqual(g.css,['src/sidebar/styles.css','src/queue/styles.css']);assert.deepEqual(cl.css,['src/queue/styles.css']);assert.equal(cl.js.some(x=>x.includes('/sidebar/')),false);});
 
 test('manifest keeps popup/background wiring and every referenced runtime path exists', () => {
