@@ -9,10 +9,14 @@
   } = namespace.constants.STORAGE_KEYS;
   const storage = namespace.storage;
   const core = namespace.queueCore;
+  const updater = namespace.popupUpdate;
   const radios = [...document.querySelectorAll('input[name="queue-shortcut"]')];
   const shortcutList = document.querySelector('.shortcut-list');
   const queueEnabled = document.querySelector('#queue-enabled');
   const claudeAutoContinue = document.querySelector('#claude-auto-continue');
+  const updateNotice = document.querySelector('#update-notice');
+  const updateVersion = document.querySelector('#update-version');
+  const updateDownload = document.querySelector('#update-download');
 
   function selectShortcut(value) {
     const normalized = core.normalizeShortcut(value);
@@ -27,6 +31,28 @@
 
   function selectClaudeAutoContinue(value) {
     if (claudeAutoContinue) claudeAutoContinue.checked = value !== false;
+  }
+
+  async function checkForUpdate() {
+    if (!updater || !updateNotice || !updateVersion || !updateDownload) return;
+    const currentVersion = globalThis.chrome?.runtime?.getManifest?.()?.version;
+    if (!currentVersion) return;
+    try {
+      const response = await globalThis.fetch(updater.LATEST_RELEASE_URL, {
+        cache: 'no-store',
+        headers: { Accept: 'application/vnd.github+json' },
+      });
+      if (!response.ok) return;
+      const available = updater.releaseUpdate(currentVersion, await response.json());
+      if (!available) return;
+      updateVersion.textContent = available.version;
+      updateDownload.href = available.downloadUrl;
+      updateDownload.title = `Download ${available.version} source ZIP`;
+      updateDownload.setAttribute('aria-label', `Download ${available.version} source ZIP`);
+      updateNotice.hidden = false;
+    } catch {
+      // Update checks are best-effort and must not affect popup settings.
+    }
   }
 
   void storage.get([SHORTCUT_KEY, QUEUE_ENABLED_KEY, CLAUDE_AUTO_CONTINUE_KEY]).then((result) => {
@@ -56,4 +82,6 @@
     if (changes[QUEUE_ENABLED_KEY]) selectQueueEnabled(changes[QUEUE_ENABLED_KEY].newValue);
     if (changes[CLAUDE_AUTO_CONTINUE_KEY]) selectClaudeAutoContinue(changes[CLAUDE_AUTO_CONTINUE_KEY].newValue);
   });
+
+  void checkForUpdate();
 })();
