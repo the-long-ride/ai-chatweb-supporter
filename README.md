@@ -10,8 +10,9 @@ A dependency-free Chromium extension with local productivity tools for **ChatGPT
 - Pause or resume automatic queue dispatch per conversation; paused state persists and follows a new chat from tab scope to conversation scope.
 - Keep up to **5 queued messages visible**, with drag reorder, edit, delete, and a 5-second animated undo countdown.
 - Pause automatic replay while a draft or attachment would make dispatch unsafe.
-- Resize **ChatGPT and Grok sidebars** from **220–700 px** with independent saved widths; Claude remains queue-only.
-- Store queue state, shortcut choice, and sidebar width only in `chrome.storage.local`.
+- On **Claude**, optionally auto-click the specific **Continue** action shown after Claude reaches its per-turn tool-use limit. This is enabled by default and can be disabled in the extension popup.
+- Resize **ChatGPT and Grok sidebars** from **220–700 px** with independent saved widths; Claude has no sidebar resizing.
+- Store queue state, shortcut choice, Claude auto-continue preference, and sidebar widths only in `chrome.storage.local`.
 
 ## Install
 

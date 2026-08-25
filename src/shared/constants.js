@@ -6,6 +6,7 @@
     grokSidebarWidth: 'grokSidebarResizerWidth',
     messageQueue: 'cgptMessageQueue',
     queueShortcut: 'cgptQueueShortcut',
+    claudeAutoContinue: 'claudeAutoContinue',
   });
 
   const api = { STORAGE_KEYS };
