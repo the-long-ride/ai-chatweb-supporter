@@ -29,3 +29,11 @@ input[type="radio"] { width: 15px; height: 15px; margin: 0; accent-color: Canvas
 .switch input:checked + .switch-track::after { transform: translateX(14px); opacity: 1; }
 .switch input:focus-visible + .switch-track { outline: 2px solid CanvasText; outline-offset: 2px; }
 .popup-footer { padding-top: 10px; opacity: .48; font-size: 10px; line-height: 1.4; }
+.update-notice[hidden] { display: none; }
+.update-notice { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 10px; padding: 9px 10px; border: 1px solid color-mix(in srgb, CanvasText 18%, transparent); border-radius: 8px; background: color-mix(in srgb, CanvasText 5%, Canvas); }
+.update-copy { min-width: 0; font-size: 10px; line-height: 1.35; }
+.update-copy strong { font-size: 11px; }
+.update-download { display: grid; place-items: center; flex: 0 0 auto; width: 28px; height: 28px; border: 1px solid color-mix(in srgb, CanvasText 22%, transparent); border-radius: 7px; color: CanvasText; text-decoration: none; }
+.update-download:hover { background: color-mix(in srgb, CanvasText 8%, transparent); }
+.update-download:focus-visible { outline: 2px solid CanvasText; outline-offset: 2px; }
+.update-download svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }

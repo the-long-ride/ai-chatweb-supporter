@@ -47,12 +47,22 @@
       </label>
     </section>
 
-    <footer class="popup-footer">Text only · stored locally · no network access</footer>
+    <footer class="popup-footer">Settings stored locally · GitHub checked for updates</footer>
+
+    <section id="update-notice" class="update-notice" role="status" aria-live="polite" hidden>
+      <span class="update-copy">New version released — <strong id="update-version"></strong></span>
+      <a id="update-download" class="update-download" href="#" aria-label="Download update source ZIP" title="Download source ZIP">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 3v11m0 0 4-4m-4 4-4-4M5 18v2h14v-2" />
+        </svg>
+      </a>
+    </section>
   </main>
 
   <script src="../shared/constants.js"></script>
   <script src="../shared/storage.js"></script>
   <script src="../queue/core.js"></script>
+  <script src="update.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>
