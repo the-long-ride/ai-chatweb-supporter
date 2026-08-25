@@ -8,14 +8,22 @@ html, body { margin: 0; min-width: 320px; }
 body { background: Canvas; color: CanvasText; font-size: 12px; }
 .popup-shell { padding: 14px; }
 .popup-header { padding-bottom: 12px; border-bottom: 1px solid color-mix(in srgb, CanvasText 14%, transparent); }
-.eyebrow { margin-bottom: 7px; opacity: .56; font-size: 10px; font-weight: 700; letter-spacing: .1em; }
+.eyebrow, .section-title { margin-bottom: 7px; opacity: .56; font-size: 10px; font-weight: 700; letter-spacing: .1em; }
 h1 { margin: 0 0 5px; font: inherit; font-size: 15px; font-weight: 700; }
 p { margin: 0; max-width: 34ch; opacity: .66; line-height: 1.45; }
 .shortcut-list { margin: 10px 0 0; padding: 0; border: 0; }
-.shortcut-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; min-height: 50px; padding: 8px 2px; border-bottom: 1px solid color-mix(in srgb, CanvasText 10%, transparent); cursor: pointer; }
-.shortcut-row:hover { background: color-mix(in srgb, CanvasText 4%, transparent); }
+.shortcut-row, .toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; min-height: 50px; padding: 8px 2px; border-bottom: 1px solid color-mix(in srgb, CanvasText 10%, transparent); cursor: pointer; }
+.shortcut-row:hover, .toggle-row:hover { background: color-mix(in srgb, CanvasText 4%, transparent); }
 .shortcut-copy { display: grid; gap: 3px; }
 .shortcut-copy strong { font-size: 12px; font-weight: 650; }
-.shortcut-copy small { opacity: .55; font: inherit; font-size: 10px; }
+.shortcut-copy small { opacity: .55; font: inherit; font-size: 10px; line-height: 1.35; }
 input[type="radio"] { width: 15px; height: 15px; margin: 0; accent-color: CanvasText; }
+.setting-section { margin-top: 14px; }
+.switch { position: relative; flex: 0 0 auto; width: 34px; height: 20px; }
+.switch input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+.switch-track { display: block; width: 100%; height: 100%; border: 1px solid color-mix(in srgb, CanvasText 28%, transparent); border-radius: 999px; background: color-mix(in srgb, CanvasText 8%, transparent); transition: background .15s ease, border-color .15s ease; }
+.switch-track::after { content: ""; position: absolute; top: 3px; left: 3px; width: 14px; height: 14px; border-radius: 50%; background: CanvasText; opacity: .65; transition: transform .15s ease, opacity .15s ease; }
+.switch input:checked + .switch-track { background: color-mix(in srgb, CanvasText 18%, transparent); border-color: color-mix(in srgb, CanvasText 50%, transparent); }
+.switch input:checked + .switch-track::after { transform: translateX(14px); opacity: 1; }
+.switch input:focus-visible + .switch-track { outline: 2px solid CanvasText; outline-offset: 2px; }
 .popup-footer { padding-top: 10px; opacity: .48; font-size: 10px; line-height: 1.4; }
