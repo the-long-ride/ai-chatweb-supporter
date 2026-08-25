@@ -6,6 +6,7 @@
     grokSidebarWidth: 'grokSidebarResizerWidth',
     messageQueue: 'cgptMessageQueue',
     queueShortcut: 'cgptQueueShortcut',
+    queueEnabled: 'queueEnabled',
     claudeAutoContinue: 'claudeAutoContinue',
   });
 

@@ -22,10 +22,12 @@ test('manifest keeps popup/background wiring and every referenced runtime path e
   for (const file of paths) assert.equal(fs.existsSync(path.join(root, file)), true, `${file} should exist`);
 });
 
-test('popup keeps queue shortcut choices and exposes Claude auto-continue toggle', () => {
+test('popup keeps queue controls and exposes Claude auto-continue toggle', () => {
   const fs = require('node:fs');
   const path = require('node:path');
   const html = fs.readFileSync(path.resolve(__dirname, '../src/popup/popup.html'), 'utf8');
+  assert.match(html, /id="queue-enabled"/);
+  assert.match(html, /Message queue/);
   assert.match(html, /value="ctrl-enter"/);
   assert.match(html, /value="alt-enter"/);
   assert.match(html, /id="claude-auto-continue"/);

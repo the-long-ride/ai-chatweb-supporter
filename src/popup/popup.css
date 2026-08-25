@@ -11,7 +11,9 @@ body { background: Canvas; color: CanvasText; font-size: 12px; }
 .eyebrow, .section-title { margin-bottom: 7px; opacity: .56; font-size: 10px; font-weight: 700; letter-spacing: .1em; }
 h1 { margin: 0 0 5px; font: inherit; font-size: 15px; font-weight: 700; }
 p { margin: 0; max-width: 34ch; opacity: .66; line-height: 1.45; }
-.shortcut-list { margin: 10px 0 0; padding: 0; border: 0; }
+.shortcut-list { margin: 10px 0 0; padding: 0; border: 0; transition: opacity .15s ease; }
+.shortcut-list:disabled { opacity: .45; }
+.shortcut-list:disabled .shortcut-row { cursor: default; }
 .shortcut-row, .toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; min-height: 50px; padding: 8px 2px; border-bottom: 1px solid color-mix(in srgb, CanvasText 10%, transparent); cursor: pointer; }
 .shortcut-row:hover, .toggle-row:hover { background: color-mix(in srgb, CanvasText 4%, transparent); }
 .shortcut-copy { display: grid; gap: 3px; }

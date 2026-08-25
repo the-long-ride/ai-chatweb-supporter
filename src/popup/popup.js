@@ -2,10 +2,16 @@
   'use strict';
 
   const namespace = globalThis.AiChatWebSupporter;
-  const { queueShortcut: SHORTCUT_KEY, claudeAutoContinue: CLAUDE_AUTO_CONTINUE_KEY } = namespace.constants.STORAGE_KEYS;
+  const {
+    queueShortcut: SHORTCUT_KEY,
+    queueEnabled: QUEUE_ENABLED_KEY,
+    claudeAutoContinue: CLAUDE_AUTO_CONTINUE_KEY,
+  } = namespace.constants.STORAGE_KEYS;
   const storage = namespace.storage;
   const core = namespace.queueCore;
   const radios = [...document.querySelectorAll('input[name="queue-shortcut"]')];
+  const shortcutList = document.querySelector('.shortcut-list');
+  const queueEnabled = document.querySelector('#queue-enabled');
   const claudeAutoContinue = document.querySelector('#claude-auto-continue');
 
   function selectShortcut(value) {
@@ -13,12 +19,19 @@
     for (const radio of radios) radio.checked = radio.value === normalized;
   }
 
+  function selectQueueEnabled(value) {
+    const enabled = value !== false;
+    if (queueEnabled) queueEnabled.checked = enabled;
+    if (shortcutList) shortcutList.disabled = !enabled;
+  }
+
   function selectClaudeAutoContinue(value) {
     if (claudeAutoContinue) claudeAutoContinue.checked = value !== false;
   }
 
-  void storage.get([SHORTCUT_KEY, CLAUDE_AUTO_CONTINUE_KEY]).then((result) => {
+  void storage.get([SHORTCUT_KEY, QUEUE_ENABLED_KEY, CLAUDE_AUTO_CONTINUE_KEY]).then((result) => {
     selectShortcut(result?.[SHORTCUT_KEY]);
+    selectQueueEnabled(result?.[QUEUE_ENABLED_KEY]);
     selectClaudeAutoContinue(result?.[CLAUDE_AUTO_CONTINUE_KEY]);
   });
 
@@ -29,6 +42,10 @@
     });
   }
 
+  queueEnabled?.addEventListener('change', () => {
+    void storage.set({ [QUEUE_ENABLED_KEY]: queueEnabled.checked });
+  });
+
   claudeAutoContinue?.addEventListener('change', () => {
     void storage.set({ [CLAUDE_AUTO_CONTINUE_KEY]: claudeAutoContinue.checked });
   });
@@ -36,6 +53,7 @@
   chrome.storage.onChanged.addListener((changes, areaName) => {
     if (areaName !== 'local') return;
     if (changes[SHORTCUT_KEY]) selectShortcut(changes[SHORTCUT_KEY].newValue);
+    if (changes[QUEUE_ENABLED_KEY]) selectQueueEnabled(changes[QUEUE_ENABLED_KEY].newValue);
     if (changes[CLAUDE_AUTO_CONTINUE_KEY]) selectClaudeAutoContinue(changes[CLAUDE_AUTO_CONTINUE_KEY].newValue);
   });
 })();
