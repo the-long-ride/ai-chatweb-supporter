@@ -10,15 +10,11 @@
   const scope = typeof module !== 'undefined' && module.exports ? require('./scope.js') : namespace.queueScope;
   const viewApi = typeof module !== 'undefined' && module.exports ? require('./view.js') : namespace.queueView;
 
-  const { queueShortcut: SHORTCUT_KEY } = constants.STORAGE_KEYS;
+  const { queueShortcut: SHORTCUT_KEY, queueEnabled: QUEUE_ENABLED_KEY } = constants.STORAGE_KEYS;
   const RECONCILE_INTERVAL_MS = 800;
 
-  function canAutoDispatch({ paused, busy, sendReady, queueLength, dispatching, awaitingBusy }) {
-    return !paused && core.canDispatch({ busy, sendReady, queueLength, dispatching, awaitingBusy });
-  }
-
-  function shortcutMode({ busy, queueLength }) {
-    return busy || Number(queueLength) > 0 ? 'queue' : 'send';
+  function canAutoDispatch({ enabled = true, paused, busy, sendReady, queueLength, dispatching, awaitingBusy }) {
+    return enabled !== false && !paused && core.canDispatch({ busy, sendReady, queueLength, dispatching, awaitingBusy });
   }
 
   async function captureQueuedMessage({ state, text, persist, clearComposer, now = Date.now, idFactory }) {
@@ -48,19 +44,10 @@
     return state.paused;
   }
 
-  async function handleQueueShortcut({ provider, state, composer, event, persist, doc = globalThis.document, win = globalThis.window, now = Date.now, idFactory }) {
+  async function handleQueueShortcut({ provider, state, composer, event, persist, enabled = true, now = Date.now, idFactory }) {
+    if (enabled === false) return 'ignored';
     const text = provider?.getComposerText?.(composer);
     if (!String(text || '').trim()) return 'ignored';
-    const busy = Boolean(provider?.findStopButton?.(composer, doc, win));
-
-    if (shortcutMode({ busy, queueLength: state.queue.length }) === 'send') {
-      const sendButton = provider?.findSendButton?.(composer, doc, win);
-      if (!dom.isButtonReady(sendButton, win)) return 'blocked';
-      event?.preventDefault?.();
-      event?.stopImmediatePropagation?.();
-      sendButton.click();
-      return 'sent';
-    }
 
     event?.preventDefault?.();
     event?.stopImmediatePropagation?.();
@@ -82,8 +69,8 @@
   class DispatchGate {
     constructor() { this.dispatching = false; this.awaitingBusy = false; }
     observeBusy(busy) { if (busy && this.awaitingBusy) this.awaitingBusy = false; }
-    shouldDispatch({ paused = false, busy, sendReady, queueLength }) {
-      return canAutoDispatch({ paused, busy, sendReady, queueLength, dispatching: this.dispatching, awaitingBusy: this.awaitingBusy });
+    shouldDispatch({ enabled = true, paused = false, busy, sendReady, queueLength }) {
+      return canAutoDispatch({ enabled, paused, busy, sendReady, queueLength, dispatching: this.dispatching, awaitingBusy: this.awaitingBusy });
     }
     beginDispatch() { this.dispatching = true; }
     finishDispatch(sent) { this.dispatching = false; this.awaitingBusy = Boolean(sent); }
@@ -169,7 +156,7 @@
     }
   }
 
-  const api = { DispatchGate, ActiveQueueState, QueueScopeCoordinator, requestTabId, shortcutMode, captureQueuedMessage, handleQueueShortcut, updatePausedState, canAutoDispatch };
+  const api = { DispatchGate, ActiveQueueState, QueueScopeCoordinator, requestTabId, captureQueuedMessage, handleQueueShortcut, updatePausedState, canAutoDispatch };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   if (typeof globalThis !== 'undefined') (globalThis.AiChatWebSupporter ||= {}).queueController = api;
   if (typeof window === 'undefined' || typeof document === 'undefined') return;
@@ -178,6 +165,7 @@
   const state = new ActiveQueueState();
   const coordinator = new QueueScopeCoordinator({ storageApi: storage, state });
   let shortcut = core.DEFAULT_SHORTCUT;
+  let queueEnabled = true;
   let tabId = null;
   let activeProvider = null;
   let initialized = false;
@@ -229,7 +217,7 @@
   }
 
   async function onKeyDown(event) {
-    if (event.defaultPrevented || event.isComposing || event.repeat) return;
+    if (event.defaultPrevented || event.isComposing || event.repeat || !queueEnabled) return;
     const provider = currentProvider();
     if (!provider || !state.scopeId || !core.matchesQueueShortcut(event, shortcut)) return;
     const expectedScope = scope.resolveScope(provider, globalThis.location?.href || '', tabId);
@@ -242,8 +230,7 @@
       composer,
       event,
       persist: persistQueue,
-      doc: document,
-      win: window,
+      enabled: queueEnabled,
     });
     if (result === 'queued') {
       view.render(composer);
@@ -298,7 +285,7 @@
   }
 
   async function dispatchNext() {
-    if (!state.queue.length || !state.scopeId || gate.dispatching || state.paused) return;
+    if (!queueEnabled || !state.queue.length || !state.scopeId || gate.dispatching || state.paused) return;
     const provider = currentProvider();
     if (!provider) return;
     const resolvedScope = scope.resolveScope(provider, globalThis.location?.href || '', tabId);
@@ -320,7 +307,7 @@
         return;
       }
       const latestProvider = currentProvider();
-      if (!latestProvider || latestProvider.id !== dispatchProviderId || !state.isCurrentScope(dispatchScope) || state.paused) {
+      if (!queueEnabled || !latestProvider || latestProvider.id !== dispatchProviderId || !state.isCurrentScope(dispatchScope) || state.paused) {
         if (provider.getComposerText(composer).trim() === item.text) provider.setComposerText(composer, '');
         return;
       }
@@ -352,7 +339,7 @@
     const busy = Boolean(provider.findStopButton(composer, document, window));
     gate.observeBusy(busy);
     const safeToPrepare = dom.canPrepareQueuedSend({ busy, composerText: provider.getComposerText(composer), hasAttachments: provider.hasAttachments(composer) });
-    if (gate.shouldDispatch({ paused: state.paused, busy, sendReady: safeToPrepare, queueLength: state.queue.length })) void dispatchNext();
+    if (gate.shouldDispatch({ enabled: queueEnabled, paused: state.paused, busy, sendReady: safeToPrepare, queueLength: state.queue.length })) void dispatchNext();
   }
 
   function scheduleReconcile() {
@@ -371,6 +358,11 @@
   function onStorageChanged(changes, areaName) {
     if (areaName !== 'local') return;
     if (changes[SHORTCUT_KEY]) shortcut = core.normalizeShortcut(changes[SHORTCUT_KEY].newValue);
+    if (changes[QUEUE_ENABLED_KEY]) {
+      queueEnabled = changes[QUEUE_ENABLED_KEY].newValue !== false;
+      if (!queueEnabled) gate.reset();
+      scheduleReconcile();
+    }
     const activeKey = state.storageKey;
     if (activeKey && changes[activeKey] && state.isActiveStorageKey(activeKey)) {
       state.setState(changes[activeKey].newValue);
@@ -381,8 +373,9 @@
 
   async function bootstrap() {
     tabId = await requestTabId();
-    const stored = await storage.get([SHORTCUT_KEY]);
+    const stored = await storage.get([SHORTCUT_KEY, QUEUE_ENABLED_KEY]);
     shortcut = core.normalizeShortcut(stored[SHORTCUT_KEY]);
+    queueEnabled = stored[QUEUE_ENABLED_KEY] !== false;
     await ensureActiveScope();
     initialized = true;
     document.addEventListener('keydown', (event) => { void onKeyDown(event); }, true);
