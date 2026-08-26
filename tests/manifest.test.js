@@ -1,44 +1,9 @@
 const test=require('node:test');const assert=require('node:assert/strict');const manifest=require('../manifest.json');
 const sidebarPrefix=['src/shared/constants.js','src/shared/storage.js','src/sidebar/core.js','src/sidebar/dom.js','src/sidebar/controller.js'];
-const queueRuntime=(provider)=>['src/queue/core.js','src/queue/dom.js',`src/providers/${provider}.js`,'src/providers/registry.js','src/queue/scope.js','src/queue/ui.js','src/queue/view.js','src/queue/controller.js'];
+const queueRuntime=(provider)=>['src/queue/core.js','src/queue/dom.js','src/queue/attachments.js',`src/providers/${provider}.js`,'src/providers/registry.js','src/queue/scope.js','src/queue/ui.js','src/queue/view.js','src/queue/controller.js','src/queue/runtime.js'];
 const sidebarAndQueue=(provider)=>[...sidebarPrefix,...queueRuntime(provider)];
-const claudeRuntime=['src/shared/constants.js','src/shared/storage.js','src/queue/core.js','src/queue/dom.js','src/providers/claude.js','src/providers/claude-auto-continue.js','src/providers/registry.js','src/queue/scope.js','src/queue/ui.js','src/queue/view.js','src/queue/controller.js'];
+const claudeRuntime=['src/shared/constants.js','src/shared/storage.js','src/queue/core.js','src/queue/dom.js','src/queue/attachments.js','src/providers/claude.js','src/providers/claude-auto-continue.js','src/providers/registry.js','src/queue/scope.js','src/queue/ui.js','src/queue/view.js','src/queue/controller.js','src/queue/runtime.js'];
 test('manifest version and exact three provider entries',()=>{assert.equal(manifest.version,'1.1.3');assert.equal(manifest.content_scripts.length,3);assert.deepEqual(manifest.content_scripts.map(x=>x.matches[0]),['https://chatgpt.com/*','https://claude.ai/*','https://grok.com/*']);});
 test('content script order gives sidebar resizing to ChatGPT and Grok and auto-continue to Claude only',()=>{const [c,cl,g]=manifest.content_scripts;assert.deepEqual(c.js,sidebarAndQueue('chatgpt'));assert.deepEqual(cl.js,claudeRuntime);assert.deepEqual(g.js,sidebarAndQueue('grok'));assert.deepEqual(c.css,['src/sidebar/styles.css','src/queue/styles.css']);assert.deepEqual(g.css,['src/sidebar/styles.css','src/queue/styles.css']);assert.deepEqual(cl.css,['src/queue/styles.css']);assert.equal(cl.js.some(x=>x.includes('/sidebar/')),false);assert.equal(c.js.some(x=>x.includes('claude-auto-continue')),false);assert.equal(g.js.some(x=>x.includes('claude-auto-continue')),false);});
-
-test('manifest keeps popup/background wiring, GitHub update access, and every referenced runtime path exists', () => {
-  const fs = require('node:fs');
-  const path = require('node:path');
-  const root = path.resolve(__dirname, '..');
-  assert.equal(manifest.action?.default_popup, 'src/popup/popup.html');
-  assert.equal(manifest.background?.service_worker, 'src/background/service-worker.js');
-  assert.deepEqual(manifest.host_permissions, ['https://api.github.com/*']);
-  const paths = new Set([
-    ...manifest.content_scripts.flatMap((entry) => [...entry.js, ...entry.css]),
-    manifest.action.default_popup,
-    manifest.background.service_worker,
-    'src/popup/popup.css',
-    'src/popup/update.js',
-    'src/popup/popup.js',
-  ]);
-  for (const file of paths) assert.equal(fs.existsSync(path.join(root, file)), true, `${file} should exist`);
-});
-
-test('popup keeps queue controls, Claude toggle, and update notification', () => {
-  const fs = require('node:fs');
-  const path = require('node:path');
-  const html = fs.readFileSync(path.resolve(__dirname, '../src/popup/popup.html'), 'utf8');
-  assert.match(html, /id="queue-enabled"/);
-  assert.match(html, /Message queue/);
-  assert.match(html, /value="ctrl-enter"/);
-  assert.match(html, /value="alt-enter"/);
-  assert.match(html, /id="claude-auto-continue"/);
-  assert.match(html, /Auto-continue tools/);
-  assert.match(html, /id="update-notice"/);
-  assert.match(html, /id="update-download"/);
-  assert.match(html, /New version released/);
-  assert.match(html, /src="update\.js"/);
-  assert.match(html, /\.\.\/shared\/constants\.js/);
-  assert.match(html, /\.\.\/shared\/storage\.js/);
-  assert.match(html, /\.\.\/queue\/core\.js/);
-});
+test('manifest keeps popup/background wiring, GitHub update access, and every referenced runtime path exists',()=>{const fs=require('node:fs');const path=require('node:path');const root=path.resolve(__dirname,'..');assert.equal(manifest.action?.default_popup,'src/popup/popup.html');assert.equal(manifest.background?.service_worker,'src/background/service-worker.js');assert.deepEqual(manifest.host_permissions,['https://api.github.com/*']);const paths=new Set([...manifest.content_scripts.flatMap((entry)=>[...entry.js,...entry.css]),manifest.action.default_popup,manifest.background.service_worker,'src/background/attachment-store.js','src/popup/popup.css','src/popup/update.js','src/popup/popup.js']);for(const file of paths)assert.equal(fs.existsSync(path.join(root,file)),true,`${file} should exist`);});
+test('popup keeps queue controls, Claude toggle, and update notification',()=>{const fs=require('node:fs');const path=require('node:path');const html=fs.readFileSync(path.resolve(__dirname,'../src/popup/popup.html'),'utf8');assert.match(html,/id="queue-enabled"/);assert.match(html,/Message queue/);assert.match(html,/value="ctrl-enter"/);assert.match(html,/value="alt-enter"/);assert.match(html,/id="claude-auto-continue"/);assert.match(html,/Auto-continue tools/);assert.match(html,/id="update-notice"/);assert.match(html,/id="update-download"/);assert.match(html,/New version released/);assert.match(html,/src="update\.js"/);assert.match(html,/\.\.\/shared\/constants\.js/);assert.match(html,/\.\.\/shared\/storage\.js/);assert.match(html,/\.\.\/queue\/core\.js/);});
