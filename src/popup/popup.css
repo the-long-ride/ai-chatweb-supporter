@@ -33,7 +33,7 @@ body { background: Canvas; color: CanvasText; font-size: 12px; }
   left: 4px;
   width: calc((100% - 12px) / 2);
   border-radius: 7px;
-  background: #40b3a3;
+  background: CanvasText;
   box-shadow: 0 1px 2px rgb(0 0 0 / 18%);
   transform: translateX(0);
   transition: transform .2s cubic-bezier(.2, .8, .2, 1), box-shadow .2s ease;
@@ -59,9 +59,9 @@ body { background: Canvas; color: CanvasText; font-size: 12px; }
   transition: color .18s ease;
 }
 .shortcut-option input { position: absolute; width: 1px; height: 1px; margin: 0; opacity: 0; pointer-events: none; }
-.shortcut-option:has(input:checked) { color: white; }
+.shortcut-option:has(input:checked) { color: Canvas; }
 .shortcut-option:hover { color: CanvasText; }
-.shortcut-option:has(input:checked):hover { color: white; }
+.shortcut-option:has(input:checked):hover { color: Canvas; }
 .shortcut-option:has(input:focus-visible) { outline: 2px solid CanvasText; outline-offset: 2px; }
 .shortcut-row, .toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; min-height: 50px; padding: 8px 2px; border-bottom: 1px solid color-mix(in srgb, CanvasText 10%, transparent); cursor: pointer; }
 .toggle-row:hover { background: color-mix(in srgb, CanvasText 4%, transparent); }
