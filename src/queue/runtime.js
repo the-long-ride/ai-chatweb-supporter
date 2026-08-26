@@ -225,6 +225,7 @@
     if (!provider) return;
     const composer = provider.findComposer(document, window);
     if (!composer) return;
+    provider.maybeFillStreamErrorContinuation?.(composer, document, window);
     view.ensureRoot(composer, provider);
     attachmentCapture.reconcile(provider, composer);
     const busy = Boolean(provider.findStopButton(composer, document, window));
