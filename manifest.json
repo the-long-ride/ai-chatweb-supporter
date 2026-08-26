@@ -9,15 +9,21 @@
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
   },
-  "permissions": ["storage"],
-  "host_permissions": ["https://api.github.com/*"],
+  "permissions": [
+    "storage"
+  ],
+  "host_permissions": [
+    "https://api.github.com/*"
+  ],
   "action": {
     "default_title": "AI Chat Web Supporter settings",
     "default_popup": "src/popup/popup.html"
   },
   "content_scripts": [
     {
-      "matches": ["https://chatgpt.com/*"],
+      "matches": [
+        "https://chatgpt.com/*"
+      ],
       "js": [
         "src/shared/constants.js",
         "src/shared/storage.js",
@@ -26,36 +32,49 @@
         "src/sidebar/controller.js",
         "src/queue/core.js",
         "src/queue/dom.js",
+        "src/queue/attachments.js",
         "src/providers/chatgpt.js",
         "src/providers/registry.js",
         "src/queue/scope.js",
         "src/queue/ui.js",
         "src/queue/view.js",
-        "src/queue/controller.js"
+        "src/queue/controller.js",
+        "src/queue/runtime.js"
       ],
-      "css": ["src/sidebar/styles.css", "src/queue/styles.css"],
+      "css": [
+        "src/sidebar/styles.css",
+        "src/queue/styles.css"
+      ],
       "run_at": "document_idle"
     },
     {
-      "matches": ["https://claude.ai/*"],
+      "matches": [
+        "https://claude.ai/*"
+      ],
       "js": [
         "src/shared/constants.js",
         "src/shared/storage.js",
         "src/queue/core.js",
         "src/queue/dom.js",
+        "src/queue/attachments.js",
         "src/providers/claude.js",
         "src/providers/claude-auto-continue.js",
         "src/providers/registry.js",
         "src/queue/scope.js",
         "src/queue/ui.js",
         "src/queue/view.js",
-        "src/queue/controller.js"
+        "src/queue/controller.js",
+        "src/queue/runtime.js"
       ],
-      "css": ["src/queue/styles.css"],
+      "css": [
+        "src/queue/styles.css"
+      ],
       "run_at": "document_idle"
     },
     {
-      "matches": ["https://grok.com/*"],
+      "matches": [
+        "https://grok.com/*"
+      ],
       "js": [
         "src/shared/constants.js",
         "src/shared/storage.js",
@@ -64,16 +83,23 @@
         "src/sidebar/controller.js",
         "src/queue/core.js",
         "src/queue/dom.js",
+        "src/queue/attachments.js",
         "src/providers/grok.js",
         "src/providers/registry.js",
         "src/queue/scope.js",
         "src/queue/ui.js",
         "src/queue/view.js",
-        "src/queue/controller.js"
+        "src/queue/controller.js",
+        "src/queue/runtime.js"
       ],
-      "css": ["src/sidebar/styles.css", "src/queue/styles.css"],
+      "css": [
+        "src/sidebar/styles.css",
+        "src/queue/styles.css"
+      ],
       "run_at": "document_idle"
     }
   ],
-  "background": { "service_worker": "src/background/service-worker.js" }
+  "background": {
+    "service_worker": "src/background/service-worker.js"
+  }
 }
