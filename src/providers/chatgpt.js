@@ -10,7 +10,9 @@
   const STREAM_ERROR_CONTAINER_SELECTORS = ['div.text-token-text-error','[class*="text-token-text-error"]'];
   const STREAM_ERROR_TEXT = 'Error in message stream';
   const STREAM_ERROR_CONTINUATION = 'continue remaining works';
+  const STREAM_ERROR_RETRY_MS = 3000;
   const handledStreamErrors = new WeakSet();
+  const streamErrorStates = new WeakMap();
   function parsedUrl(url) { try { return new URL(url, 'https://chatgpt.com/'); } catch { return null; } }
   function matchesLocation(url) { return parsedUrl(url)?.hostname === 'chatgpt.com'; }
   function extractConversationId(url) { const parsed=parsedUrl(url); const pathname=parsed?.pathname||String(url||''); const match=pathname.match(/(?:^|\/)c\/([^\/?#]+)/); if(!match?.[1])return null; try{return decodeURIComponent(match[1]);}catch{return match[1];} }
@@ -28,21 +30,24 @@
   function findStreamError(doc=globalThis.document,win=globalThis.window) {
     const retry = dom.firstVisible(doc,[STREAM_ERROR_BUTTON_SELECTOR],win);
     if(retry)return retry.closest?.('.text-token-text-error')||retry;
-    for(const selector of STREAM_ERROR_CONTAINER_SELECTORS){
-      for(const element of Array.from(doc?.querySelectorAll?.(selector)||[])){
-        if(String(element.textContent||'').includes(STREAM_ERROR_TEXT)&&dom.isElementVisible(element,win))return element;
-      }
-    }
+    for(const selector of STREAM_ERROR_CONTAINER_SELECTORS){for(const element of Array.from(doc?.querySelectorAll?.(selector)||[])){if(String(element.textContent||'').includes(STREAM_ERROR_TEXT)&&dom.isElementVisible(element,win))return element;}}
     return null;
   }
   function maybeFillStreamErrorContinuation(composer,doc=globalThis.document,win=globalThis.window) {
-    const error = findStreamError(doc,win);
-    if(!error||handledStreamErrors.has(error))return false;
-    const target = composer||findComposer(doc,win);
-    if(!target||dom.getComposerText(target).trim())return false;
-    if(!dom.setComposerText(target,STREAM_ERROR_CONTINUATION))return false;
-    handledStreamErrors.add(error);
-    return true;
+    const error=findStreamError(doc,win); if(!error||handledStreamErrors.has(error))return false;
+    const target=composer||findComposer(doc,win); if(!target)return false;
+    let state=streamErrorStates.get(error); let current=dom.getComposerText(target).trim();
+    if(!state){if(current)return false;if(!dom.setComposerText(target,STREAM_ERROR_CONTINUATION))return false;state={phase:'filled',clickedAt:0};streamErrorStates.set(error,state);current=STREAM_ERROR_CONTINUATION;}
+    else if(state.phase==='clicked'){
+      const accepted=Boolean(findStopButton(target,doc,win))||!current;
+      if(accepted){handledStreamErrors.add(error);streamErrorStates.delete(error);return true;}
+      if(current!==STREAM_ERROR_CONTINUATION){handledStreamErrors.add(error);streamErrorStates.delete(error);return false;}
+      if(Date.now()-state.clickedAt<STREAM_ERROR_RETRY_MS)return true;
+      state.phase='filled';
+    } else if(current!==STREAM_ERROR_CONTINUATION){handledStreamErrors.add(error);streamErrorStates.delete(error);return false;}
+    const sendButton=findSendButton(target,doc,win); if(!dom.isButtonReady(sendButton,win))return true;
+    if(dom.getComposerText(target).trim()!==STREAM_ERROR_CONTINUATION){handledStreamErrors.add(error);streamErrorStates.delete(error);return false;}
+    sendButton.click?.(); state.phase='clicked'; state.clickedAt=Date.now(); return true;
   }
   const api={id:'chatgpt',matchesLocation,extractConversationId,findComposer,getComposerText:dom.getComposerText,setComposerText:dom.setComposerText,queueAnchor,findSendButton,findStopButton,hasAttachments,getSelectedFiles,findFileInput,attachFiles,clearAttachments,themeContext,findStreamError,maybeFillStreamErrorContinuation};
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
