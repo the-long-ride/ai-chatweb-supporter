@@ -2,6 +2,19 @@
 
 All notable changes to AI Chat Web Supporter are documented here by released version.
 
+## [1.1.4] - 2026-08-26
+
+### Added
+- Rich queued-message content for ChatGPT, Claude, and Grok, including pasted images, dropped/selected files, and mixed text-plus-attachment messages.
+- Local IndexedDB persistence for queued attachment bytes until messages are sent or permanently deleted.
+
+### Changed
+- Simplified the extension popup by removing the redundant queue-shortcut title and description block.
+- Replaced the stacked shortcut radio rows with a compact animated segmented Ctrl + Enter / Alt + Enter selector.
+
+### Fixed
+- Queue dispatch now continues correctly after an AI response completes, including fast ChatGPT responses that previously could leave the next queued message blocked.
+
 ## [1.1.3] - 2026-08-26
 
 ### Added
