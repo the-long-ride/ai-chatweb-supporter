@@ -7,20 +7,67 @@
 html, body { margin: 0; min-width: 320px; }
 body { background: Canvas; color: CanvasText; font-size: 12px; }
 .popup-shell { padding: 14px; }
-.popup-header { padding-bottom: 12px; border-bottom: 1px solid color-mix(in srgb, CanvasText 14%, transparent); }
 .eyebrow, .section-title { margin-bottom: 7px; opacity: .56; font-size: 10px; font-weight: 700; letter-spacing: .1em; }
-h1 { margin: 0 0 5px; font: inherit; font-size: 15px; font-weight: 700; }
-p { margin: 0; max-width: 34ch; opacity: .66; line-height: 1.45; }
-.shortcut-list { margin: 10px 0 0; padding: 0; border: 0; transition: opacity .15s ease; }
+.popup-brand { margin-bottom: 12px; }
+.setting-section { margin-top: 14px; }
+.popup-brand + .setting-section { margin-top: 0; }
+.shortcut-list {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+  margin: 12px 0 0;
+  padding: 4px;
+  border: 1px solid color-mix(in srgb, CanvasText 16%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, CanvasText 6%, Canvas);
+  transition: opacity .15s ease;
+}
+.shortcut-list::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  top: 4px;
+  bottom: 4px;
+  left: 4px;
+  width: calc((100% - 12px) / 2);
+  border-radius: 7px;
+  background: #40b3a3;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 18%);
+  transform: translateX(0);
+  transition: transform .2s cubic-bezier(.2, .8, .2, 1), box-shadow .2s ease;
+}
+.shortcut-list:has(input[value="alt-enter"]:checked)::before { transform: translateX(calc(100% + 4px)); }
 .shortcut-list:disabled { opacity: .45; }
-.shortcut-list:disabled .shortcut-row { cursor: default; }
+.shortcut-list:disabled .shortcut-option { cursor: default; }
+.shortcut-option {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  min-height: 36px;
+  padding: 0 10px;
+  border-radius: 7px;
+  color: color-mix(in srgb, CanvasText 68%, transparent);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  transition: color .18s ease;
+}
+.shortcut-option input { position: absolute; width: 1px; height: 1px; margin: 0; opacity: 0; pointer-events: none; }
+.shortcut-option:has(input:checked) { color: white; }
+.shortcut-option:hover { color: CanvasText; }
+.shortcut-option:has(input:checked):hover { color: white; }
+.shortcut-option:has(input:focus-visible) { outline: 2px solid CanvasText; outline-offset: 2px; }
 .shortcut-row, .toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; min-height: 50px; padding: 8px 2px; border-bottom: 1px solid color-mix(in srgb, CanvasText 10%, transparent); cursor: pointer; }
-.shortcut-row:hover, .toggle-row:hover { background: color-mix(in srgb, CanvasText 4%, transparent); }
+.toggle-row:hover { background: color-mix(in srgb, CanvasText 4%, transparent); }
 .shortcut-copy { display: grid; gap: 3px; }
 .shortcut-copy strong { font-size: 12px; font-weight: 650; }
 .shortcut-copy small { opacity: .55; font: inherit; font-size: 10px; line-height: 1.35; }
-input[type="radio"] { width: 15px; height: 15px; margin: 0; accent-color: CanvasText; }
-.setting-section { margin-top: 14px; }
 .switch { position: relative; flex: 0 0 auto; width: 34px; height: 20px; }
 .switch input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
 .switch-track { display: block; width: 100%; height: 100%; border: 1px solid color-mix(in srgb, CanvasText 28%, transparent); border-radius: 999px; background: color-mix(in srgb, CanvasText 8%, transparent); transition: background .15s ease, border-color .15s ease; }
