@@ -35,6 +35,9 @@
         "src/queue/attachments.js",
         "src/providers/chatgpt.js",
         "src/providers/registry.js",
+        "src/batch/core.js",
+        "src/batch/dom.js",
+        "src/batch/controller.js",
         "src/queue/scope.js",
         "src/queue/ui.js",
         "src/queue/view.js",
@@ -43,7 +46,8 @@
       ],
       "css": [
         "src/sidebar/styles.css",
-        "src/queue/styles.css"
+        "src/queue/styles.css",
+        "src/batch/styles.css"
       ],
       "run_at": "document_idle"
     },
@@ -60,6 +64,9 @@
         "src/providers/claude.js",
         "src/providers/claude-auto-continue.js",
         "src/providers/registry.js",
+        "src/batch/core.js",
+        "src/batch/dom.js",
+        "src/batch/controller.js",
         "src/queue/scope.js",
         "src/queue/ui.js",
         "src/queue/view.js",
@@ -67,7 +74,8 @@
         "src/queue/runtime.js"
       ],
       "css": [
-        "src/queue/styles.css"
+        "src/queue/styles.css",
+        "src/batch/styles.css"
       ],
       "run_at": "document_idle"
     },
@@ -86,6 +94,9 @@
         "src/queue/attachments.js",
         "src/providers/grok.js",
         "src/providers/registry.js",
+        "src/batch/core.js",
+        "src/batch/dom.js",
+        "src/batch/controller.js",
         "src/queue/scope.js",
         "src/queue/ui.js",
         "src/queue/view.js",
@@ -94,7 +105,8 @@
       ],
       "css": [
         "src/sidebar/styles.css",
-        "src/queue/styles.css"
+        "src/queue/styles.css",
+        "src/batch/styles.css"
       ],
       "run_at": "document_idle"
     }

@@ -49,7 +49,40 @@
     if(dom.getComposerText(target).trim()!==STREAM_ERROR_CONTINUATION){handledStreamErrors.add(error);streamErrorStates.delete(error);return false;}
     sendButton.click?.(); state.phase='clicked'; state.clickedAt=Date.now(); return true;
   }
-  const api={id:'chatgpt',matchesLocation,extractConversationId,findComposer,getComposerText:dom.getComposerText,setComposerText:dom.setComposerText,queueAnchor,findSendButton,findStopButton,hasAttachments,getSelectedFiles,findFileInput,attachFiles,clearAttachments,themeContext,findStreamError,maybeFillStreamErrorContinuation};
+  function findConversationSection(doc=globalThis.document){return doc?.querySelector?.('#history')||null;}
+  function findConversationHeader(section){const shell=section?.closest?.('[class*="sidebar-expando-section"]');return shell?.querySelector?.('[class*="sidebar-expando-section-header"]')||section?.parentElement?.previousElementSibling||null;}
+  function listConversationRows(section){return Array.from(section?.querySelectorAll?.('a[data-sidebar-item="true"][href*="/c/"],a[href*="/c/"]')||[]);}
+  function getConversationAnchor(row){if(row?.matches?.('a[href*="/c/"]'))return row;return row?.querySelector?.('a[href*="/c/"]')||null;}
+  function getConversationId(row){const anchor=getConversationAnchor(row);const fromHref=extractConversationId(anchor?.getAttribute?.('href')||anchor?.href||'');if(fromHref)return fromHref;return row?.querySelector?.('[data-conversation-options-trigger]')?.getAttribute?.('data-conversation-options-trigger')||null;}
+  function getNativeButtonTemplate(section){const header=findConversationHeader(section);return header?.querySelector?.('button[data-trailing-button],a[data-trailing-button]')||null;}
+  function cookieValue(doc,name){const text=String(doc?.cookie||'');for(const part of text.split(';')){const [key,...rest]=part.trim().split('=');if(key===name){try{return decodeURIComponent(rest.join('='));}catch{return rest.join('=');}}}return null;}
+  async function resolveBatchAuthHeaders(context={}){
+    if(context.authHeaders)return context.authHeaders;
+    if(!context.__chatgptBatchAuthPromise){
+      context.__chatgptBatchAuthPromise=(async()=>{
+        const fetchFn=context.fetch||globalThis.fetch;
+        if(typeof fetchFn!=='function')return {};
+        try{
+          const response=await fetchFn('/api/auth/session',{credentials:'include'});
+          if(!response?.ok)return {};
+          const session=await response.json();
+          const token=session?.accessToken||session?.access_token;
+          const doc=context.document||globalThis.document;
+          const accountId=session?.account?.id||session?.accountId||session?.user?.account_id||cookieValue(doc,'_account');
+          const headers={};
+          if(token)headers.authorization=`Bearer ${token}`;
+          if(accountId)headers['chatgpt-account-id']=String(accountId);
+          return headers;
+        }catch{return {};}
+      })();
+    }
+    return context.__chatgptBatchAuthPromise;
+  }
+  function ensureBatchResponse(response,action,id){if(!response?.ok){const status=response?.status??'unknown';throw new Error(`ChatGPT ${action} failed for ${id}: ${status}`);}return true;}
+  async function archiveConversation(id,context={}){const fetchFn=context.fetch||globalThis.fetch;const auth=await resolveBatchAuthHeaders(context);const response=await fetchFn(`/backend-api/conversation/${encodeURIComponent(id)}`,{method:'PATCH',credentials:'include',headers:{...auth,'content-type':'application/json'},body:JSON.stringify({is_archived:true})});return ensureBatchResponse(response,'archive',id);}
+  async function deleteConversation(id,context={}){const fetchFn=context.fetch||globalThis.fetch;const auth=await resolveBatchAuthHeaders(context);const response=await fetchFn(`/backend-api/conversation/${encodeURIComponent(id)}`,{method:'PATCH',credentials:'include',headers:{...auth,'content-type':'application/json'},body:JSON.stringify({is_visible:false})});return ensureBatchResponse(response,'delete',id);}
+  const batch={supportsArchive:true,findConversationSection,findConversationHeader,listConversationRows,getConversationId,getConversationAnchor,getNativeButtonTemplate,resolveBatchAuthHeaders,archiveConversation,deleteConversation};
+  const api={id:'chatgpt',matchesLocation,extractConversationId,findComposer,getComposerText:dom.getComposerText,setComposerText:dom.setComposerText,queueAnchor,findSendButton,findStopButton,hasAttachments,getSelectedFiles,findFileInput,attachFiles,clearAttachments,themeContext,findStreamError,maybeFillStreamErrorContinuation,batch};
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   if(typeof globalThis!=='undefined'){const namespace=globalThis.AiChatWebSupporter||={};const providers=namespace.providers||={};providers.chatgpt=api;}
 })();

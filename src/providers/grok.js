@@ -20,7 +20,16 @@
   function clearAttachments(composer,doc=globalThis.document,win=globalThis.window) { const scope=composerScope(composer)||doc; let changed=false; for(const button of Array.from(scope?.querySelectorAll?.(REMOVE_ATTACHMENT_SELECTOR)||[])){button.click?.();changed=true;} const input=findFileInput(composer,doc); if(input?.files?.length)changed=dom.assignFilesToInput(input,[],win)||changed; else changed=dom.clearFileInputs(scope,win)||changed; return changed; }
   function queueAnchor(composer) { const scope=composerScope(composer); if(scope?.parentElement)return scope; return composer?.parentElement||null; }
   function themeContext(composer,doc=globalThis.document,win=globalThis.window) { return dom.themeContext(composerScope(composer)||composer||doc?.body,win); }
-  const api={id:'grok',matchesLocation,extractConversationId,findComposer,getComposerText:dom.getComposerText,setComposerText:dom.setComposerText,queueAnchor,findSendButton,findStopButton,hasAttachments,getSelectedFiles,findFileInput,attachFiles,clearAttachments,themeContext};
+  function findConversationSection(doc=globalThis.document){for(const menu of Array.from(doc?.querySelectorAll?.('[data-sidebar="menu"]')||[])){if(menu?.querySelector?.('a[href*="/c/"]'))return menu?.closest?.('[data-sidebar="group"]')||menu;}return null;}
+  function findConversationHeader(section){const menu=section?.matches?.('[data-sidebar="menu"]')?section:section?.querySelector?.('[data-sidebar="menu"]');return menu?.previousElementSibling||section?.querySelector?.(':scope > div')||null;}
+  function listConversationRows(section){const menu=section?.matches?.('[data-sidebar="menu"]')?section:section?.querySelector?.('[data-sidebar="menu"]')||section;return Array.from(menu?.querySelectorAll?.('[data-sidebar="menu-item"]')||[]).filter((row)=>Boolean(getConversationAnchor(row)));}
+  function getConversationAnchor(row){if(row?.matches?.('a[href*="/c/"]'))return row;return row?.querySelector?.('a[href*="/c/"]')||null;}
+  function getConversationId(row){const anchor=getConversationAnchor(row);return extractConversationId(anchor?.getAttribute?.('href')||anchor?.href||'');}
+  function getNativeButtonTemplate(section){const header=findConversationHeader(section);return header?.querySelector?.('button[data-slot="button"],button')||null;}
+  function ensureBatchResponse(response,id){if(!response?.ok){const status=response?.status??'unknown';throw new Error(`Grok delete failed for ${id}: ${status}`);}return true;}
+  async function deleteConversation(id,context={}){const fetchFn=context.fetch||globalThis.fetch;const response=await fetchFn(`/rest/app-chat/conversations/soft/${encodeURIComponent(id)}`,{method:'DELETE',credentials:'include'});return ensureBatchResponse(response,id);}
+  const batch={supportsArchive:false,findConversationSection,findConversationHeader,listConversationRows,getConversationId,getConversationAnchor,getNativeButtonTemplate,deleteConversation};
+  const api={id:'grok',matchesLocation,extractConversationId,findComposer,getComposerText:dom.getComposerText,setComposerText:dom.setComposerText,queueAnchor,findSendButton,findStopButton,hasAttachments,getSelectedFiles,findFileInput,attachFiles,clearAttachments,themeContext,batch};
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   if(typeof globalThis!=='undefined'){const namespace=globalThis.AiChatWebSupporter||={};const providers=namespace.providers||={};providers.grok=api;}
 })();
