@@ -129,12 +129,10 @@
     textarea.setSelectionRange(textarea.value.length, textarea.value.length);
   }
 
-
   const modal = { isOpaqueBackground, applyProviderTheme, renderModalAttachments, openEditModal };
 
-
   class QueueView {
-    constructor({ getQueue, setQueue, getPaused = () => false, setPaused = () => {}, persistQueue, scheduleReconcile, getProvider, deleteAttachments = async () => {} }) {
+    constructor({ getQueue, setQueue, getPaused = () => false, setPaused = () => {}, persistQueue, scheduleReconcile, getProvider, deleteAttachments = async () => {}, steerItem = async () => false }) {
       this.getQueue = getQueue;
       this.setQueue = setQueue;
       this.getPaused = getPaused;
@@ -143,6 +141,7 @@
       this.scheduleReconcile = scheduleReconcile;
       this.getProvider = getProvider;
       this.deleteAttachments = deleteAttachments;
+      this.steerItem = steerItem;
       this.root = null;
       this.dragId = null;
       this.undoRecord = null;
@@ -228,8 +227,13 @@
         const row = document.createElement('div');
         row.className = 'cgpt-queue-row';
         row.dataset.queueId = item.id;
-        row.draggable = true;
+        row.draggable = false;
         row.setAttribute('role', 'listitem');
+
+        const grab = this.iconButton('grab', `Reorder queued message ${index + 1}`, () => {});
+        grab.classList.add('cgpt-queue-grab');
+        grab.draggable = true;
+
         const number = document.createElement('span');
         number.className = 'cgpt-queue-number';
         number.textContent = String(index + 1);
@@ -248,12 +252,22 @@
         }
         const actions = document.createElement('span');
         actions.className = 'cgpt-queue-actions';
-        actions.append(this.iconButton('edit', 'Edit queued message', () => this.openEditModal(item.id)), this.iconButton('delete', 'Delete queued message', () => this.deleteItem(item.id)));
-        row.append(number, content, actions);
-        row.addEventListener('dragstart', (event) => { this.dragId=item.id; event.dataTransfer?.setData('text/plain',item.id); if(event.dataTransfer)event.dataTransfer.effectAllowed='move'; row.classList.add('is-dragging'); });
+        actions.append(
+          this.iconButton('steer', 'Steer queued message', () => { void Promise.resolve(this.steerItem(item.id)).finally(() => this.scheduleReconcile()); }),
+          this.iconButton('edit', 'Edit queued message', () => this.openEditModal(item.id)),
+          this.iconButton('delete', 'Delete queued message', () => this.deleteItem(item.id)),
+        );
+        row.append(grab, number, content, actions);
+
+        grab.addEventListener('dragstart', (event) => {
+          this.dragId = item.id;
+          event.dataTransfer?.setData('text/plain', item.id);
+          if (event.dataTransfer) event.dataTransfer.effectAllowed = 'move';
+          row.classList.add('is-dragging');
+        });
         row.addEventListener('dragover', (event) => { if(!this.dragId||this.dragId===item.id)return; event.preventDefault(); this.clearDropState(); row.classList.add('is-drop-target'); if(event.dataTransfer)event.dataTransfer.dropEffect='move'; });
-        row.addEventListener('drop', (event) => { event.preventDefault(); const queueNow=this.getQueue(); const sourceId=this.dragId||event.dataTransfer?.getData('text/plain'); const from=queueNow.findIndex((entry)=>entry.id===sourceId); const to=queueNow.findIndex((entry)=>entry.id===item.id); if(from>=0&&to>=0&&from!==to){this.setQueue(core.reorderQueue(queueNow,from,to));void this.persistQueue();this.render();} this.dragId=null;this.clearDropState(); });
-        row.addEventListener('dragend', () => { this.dragId=null;this.clearDropState();row.classList.remove('is-dragging'); });
+        row.addEventListener('drop', (event) => { event.preventDefault(); const queueNow=this.getQueue(); const sourceId=this.dragId||event.dataTransfer?.getData('text/plain'); const from=queueNow.findIndex((entry)=>entry.id===sourceId); const to=queueNow.findIndex((entry)=>entry.id===item.id); if(from>=0&&to>=0&&from!==to){this.setQueue(core.reorderQueue(queueNow,from,to));void Promise.resolve(this.persistQueue()).then(()=>this.render()).then(()=>this.scheduleReconcile());} this.dragId=null;this.clearDropState(); });
+        grab.addEventListener('dragend', () => { this.dragId=null;this.clearDropState();row.classList.remove('is-dragging'); });
         viewport.appendChild(row);
       }
 
