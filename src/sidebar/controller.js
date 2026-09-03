@@ -98,13 +98,13 @@
         this.handle.hidden = true;
         return;
       }
-      const rect = this.currentSidebar.getBoundingClientRect();
-      if (!dom.sidebarIsOpen(rect, this.win)) {
+      if (!dom.sidebarElementIsOpen(this.currentSidebar, this.win, this.site.id)) {
         this.handle.hidden = true;
         return;
       }
-      const top = Math.max(rect.top + dom.TOP_SAFETY_INSET, dom.TOP_SAFETY_INSET);
-      const bottom = Math.min(rect.bottom - dom.BOTTOM_SAFETY_INSET, this.win.innerHeight);
+      const rect = this.currentSidebar.getBoundingClientRect();
+      const top = Math.max(rect.top, 0);
+      const bottom = Math.min(rect.bottom, this.win.innerHeight);
       const height = Math.max(0, bottom - top);
       if (height < 32) {
         this.handle.hidden = true;
@@ -130,11 +130,15 @@
       const ResizeObserverCtor = this.win.ResizeObserver || globalThis.ResizeObserver;
       if (!this.currentSidebar || typeof ResizeObserverCtor === 'undefined') return;
       this.resizeObserver = new ResizeObserverCtor(() => this.scheduleHandlePosition());
-      this.resizeObserver.observe(this.currentSidebar);
+      const surfaces = new Set([this.currentSidebar, ...dom.listSidebarSurfaces(this.currentSidebar, this.site.id)]);
+      for (const surface of surfaces) {
+        try { this.resizeObserver.observe(surface); } catch {}
+      }
     }
 
     setSidebar(nextSidebar) {
       if (nextSidebar === this.currentSidebar) {
+        this.connectResizeObserver();
         this.scheduleHandlePosition();
         return;
       }
@@ -166,13 +170,18 @@
       this.mutationObserver = new MutationObserverCtor((mutations) => {
         if (mutations.some((mutation) => dom.mutationMayAffectSidebar(mutation, this.currentSidebar))) this.scheduleDiscovery();
       });
-      this.mutationObserver.observe(this.doc.body, { childList: true, subtree: true });
+      this.mutationObserver.observe(this.doc.body, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['class', 'style', 'data-state', 'aria-expanded', 'data-collapsed', 'data-collapsible', 'hidden'],
+      });
     }
 
     onPointerDown(event) {
       if (event.button !== 0 || !this.currentSidebar?.isConnected) return;
+      if (!dom.sidebarElementIsOpen(this.currentSidebar, this.win, this.site.id)) return;
       const rect = this.currentSidebar.getBoundingClientRect();
-      if (!dom.sidebarIsOpen(rect, this.win)) return;
       event.preventDefault();
       this.dragState = { pointerId: event.pointerId, startX: event.clientX, startWidth: rect.width, currentWidth: core.clampWidth(rect.width) };
       try { this.handle.setPointerCapture(event.pointerId); } catch {}

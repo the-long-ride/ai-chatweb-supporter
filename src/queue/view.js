@@ -5,6 +5,7 @@
   const ui = typeof module !== 'undefined' && module.exports ? require('./ui.js') : namespace.queueUi;
   const ROOT_ID = 'cgpt-message-queue';
   const MODAL_ID = 'cgpt-message-queue-modal';
+  const CLEAR_MODAL_ID = 'cgpt-message-queue-clear-modal';
   const UNDO_ID = 'cgpt-message-queue-undo';
 
   function isOpaqueBackground(value) {
@@ -129,12 +130,69 @@
     textarea.setSelectionRange(textarea.value.length, textarea.value.length);
   }
 
+  function openClearAllModal(view) {
+    if (!view.getQueue().length) return;
+    view.closeClearAllModal();
+    const overlay = document.createElement('div');
+    overlay.id = CLEAR_MODAL_ID;
+    overlay.className = 'cgpt-queue-modal-overlay';
+    overlay.dataset.cgptQueueUi = 'true';
+    overlay.setAttribute('data-cgpt-queue-ui', 'true');
+    overlay.setAttribute('role', 'presentation');
+    applyProviderTheme(view, overlay);
 
-  const modal = { isOpaqueBackground, applyProviderTheme, renderModalAttachments, openEditModal };
+    const dialog = document.createElement('div');
+    dialog.className = 'cgpt-queue-modal cgpt-queue-clear-modal';
+    dialog.setAttribute('role', 'dialog');
+    dialog.setAttribute('aria-modal', 'true');
+    dialog.setAttribute('aria-labelledby', 'cgpt-queue-clear-modal-title');
 
+    const title = document.createElement('div');
+    title.id = 'cgpt-queue-clear-modal-title';
+    title.className = 'cgpt-queue-modal-title';
+    title.textContent = 'Clear all queued messages?';
+
+    const message = document.createElement('div');
+    message.className = 'cgpt-queue-clear-modal-message';
+    message.textContent = 'This removes every queued message in this conversation.';
+
+    const footer = document.createElement('div');
+    footer.className = 'cgpt-queue-modal-footer';
+    const cancel = view.actionButton('Cancel', 'Cancel clearing queued messages', () => view.closeClearAllModal());
+    cancel.classList.add('cgpt-queue-modal-button');
+    const clear = view.actionButton('Clear all', 'Clear all queued messages', () => {
+      clear.disabled = true;
+      cancel.disabled = true;
+      void Promise.resolve(view.clearAllItems()).then((cleared) => {
+        if (!cleared) {
+          clear.disabled = false;
+          cancel.disabled = false;
+          return;
+        }
+        view.clearUndo({ deleteAttachments:true });
+        view.closeClearAllModal();
+        view.render();
+        view.scheduleReconcile();
+      }).catch(() => {
+        clear.disabled = false;
+        cancel.disabled = false;
+        view.render();
+      });
+    });
+    clear.classList.add('cgpt-queue-modal-button', 'is-primary', 'is-danger');
+    footer.append(cancel, clear);
+    dialog.append(title, message, footer);
+    overlay.appendChild(dialog);
+    overlay.addEventListener('mousedown', (event) => { if (event.target === overlay) view.closeClearAllModal(); });
+    overlay.addEventListener('keydown', (event) => { if (event.key === 'Escape') view.closeClearAllModal(); });
+    document.body.appendChild(overlay);
+    cancel.focus();
+  }
+
+  const modal = { isOpaqueBackground, applyProviderTheme, renderModalAttachments, openEditModal, openClearAllModal };
 
   class QueueView {
-    constructor({ getQueue, setQueue, getPaused = () => false, setPaused = () => {}, persistQueue, scheduleReconcile, getProvider, deleteAttachments = async () => {} }) {
+    constructor({ getQueue, setQueue, getPaused = () => false, setPaused = () => {}, persistQueue, scheduleReconcile, getProvider, deleteAttachments = async () => {}, steerItem = async () => false, clearAllItems = async () => false }) {
       this.getQueue = getQueue;
       this.setQueue = setQueue;
       this.getPaused = getPaused;
@@ -143,6 +201,8 @@
       this.scheduleReconcile = scheduleReconcile;
       this.getProvider = getProvider;
       this.deleteAttachments = deleteAttachments;
+      this.steerItem = steerItem;
+      this.clearAllItems = clearAllItems;
       this.root = null;
       this.dragId = null;
       this.undoRecord = null;
@@ -208,7 +268,12 @@
         void Promise.resolve(this.setPaused(!Boolean(this.getPaused()))).then(() => this.render()).then(() => this.scheduleReconcile()).catch(() => this.render());
       });
       toggle.classList.add('cgpt-queue-pause-button');
-      header.append(label, toggle);
+      const headerActions = document.createElement('span');
+      headerActions.className = 'cgpt-queue-header-actions';
+      const clearAll = this.iconButton('delete', 'Clear all queued messages', () => this.openClearAllModal());
+      clearAll.classList.add('cgpt-queue-clear-all');
+      headerActions.append(toggle, clearAll);
+      header.append(label, headerActions);
 
       const indicator = document.createElement('div');
       indicator.className = 'cgpt-queue-overflow-indicator';
@@ -228,8 +293,13 @@
         const row = document.createElement('div');
         row.className = 'cgpt-queue-row';
         row.dataset.queueId = item.id;
-        row.draggable = true;
+        row.draggable = false;
         row.setAttribute('role', 'listitem');
+
+        const grab = this.iconButton('grab', `Reorder queued message ${index + 1}`, () => {});
+        grab.classList.add('cgpt-queue-grab');
+        grab.draggable = true;
+
         const number = document.createElement('span');
         number.className = 'cgpt-queue-number';
         number.textContent = String(index + 1);
@@ -248,12 +318,22 @@
         }
         const actions = document.createElement('span');
         actions.className = 'cgpt-queue-actions';
-        actions.append(this.iconButton('edit', 'Edit queued message', () => this.openEditModal(item.id)), this.iconButton('delete', 'Delete queued message', () => this.deleteItem(item.id)));
-        row.append(number, content, actions);
-        row.addEventListener('dragstart', (event) => { this.dragId=item.id; event.dataTransfer?.setData('text/plain',item.id); if(event.dataTransfer)event.dataTransfer.effectAllowed='move'; row.classList.add('is-dragging'); });
+        actions.append(
+          this.iconButton('steer', 'Steer queued message', () => { void Promise.resolve(this.steerItem(item.id)).finally(() => this.scheduleReconcile()); }),
+          this.iconButton('edit', 'Edit queued message', () => this.openEditModal(item.id)),
+          this.iconButton('delete', 'Delete queued message', () => this.deleteItem(item.id)),
+        );
+        row.append(grab, number, content, actions);
+
+        grab.addEventListener('dragstart', (event) => {
+          this.dragId = item.id;
+          event.dataTransfer?.setData('text/plain', item.id);
+          if (event.dataTransfer) event.dataTransfer.effectAllowed = 'move';
+          row.classList.add('is-dragging');
+        });
         row.addEventListener('dragover', (event) => { if(!this.dragId||this.dragId===item.id)return; event.preventDefault(); this.clearDropState(); row.classList.add('is-drop-target'); if(event.dataTransfer)event.dataTransfer.dropEffect='move'; });
-        row.addEventListener('drop', (event) => { event.preventDefault(); const queueNow=this.getQueue(); const sourceId=this.dragId||event.dataTransfer?.getData('text/plain'); const from=queueNow.findIndex((entry)=>entry.id===sourceId); const to=queueNow.findIndex((entry)=>entry.id===item.id); if(from>=0&&to>=0&&from!==to){this.setQueue(core.reorderQueue(queueNow,from,to));void this.persistQueue();this.render();} this.dragId=null;this.clearDropState(); });
-        row.addEventListener('dragend', () => { this.dragId=null;this.clearDropState();row.classList.remove('is-dragging'); });
+        row.addEventListener('drop', (event) => { event.preventDefault(); const queueNow=this.getQueue(); const sourceId=this.dragId||event.dataTransfer?.getData('text/plain'); const from=queueNow.findIndex((entry)=>entry.id===sourceId); const to=queueNow.findIndex((entry)=>entry.id===item.id); if(from>=0&&to>=0&&from!==to){this.setQueue(core.reorderQueue(queueNow,from,to));void Promise.resolve(this.persistQueue()).then(()=>this.render()).then(()=>this.scheduleReconcile());} this.dragId=null;this.clearDropState(); });
+        grab.addEventListener('dragend', () => { this.dragId=null;this.clearDropState();row.classList.remove('is-dragging'); });
         viewport.appendChild(row);
       }
 
@@ -263,9 +343,11 @@
     }
 
     closeEditModal() { document.getElementById(MODAL_ID)?.remove(); }
+    closeClearAllModal() { document.getElementById(CLEAR_MODAL_ID)?.remove(); }
     applyProviderTheme(target) { return modal.applyProviderTheme(this, target); }
     renderModalAttachments(container, draftAttachments) { return modal.renderModalAttachments(this, container, draftAttachments); }
     openEditModal(id) { return modal.openEditModal(this, id); }
+    openClearAllModal() { return modal.openClearAllModal(this); }
 
     clearUndo({ deleteAttachments: shouldDeleteAttachments = false } = {}) {
       const record = this.undoRecord;

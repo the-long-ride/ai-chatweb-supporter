@@ -5,8 +5,8 @@
   function isButtonReady(button,win=globalThis.window){if(!isElementVisible(button,win)||button.disabled)return false;if(button.getAttribute?.('aria-disabled')==='true')return false;const style=win?.getComputedStyle?win.getComputedStyle(button):null;return!style||style.pointerEvents!=='none';}
   function firstVisible(scope,selectors,win=globalThis.window){if(!scope?.querySelectorAll)return null;for(const selector of selectors){for(const element of scope.querySelectorAll(selector)){if(element.closest?.('[data-cgpt-queue-ui="true"]'))continue;if(isElementVisible(element,win))return element;}}return null;}
   function themeContext(element,win=globalThis.window){const style=element&&win?.getComputedStyle?win.getComputedStyle(element):null;return{color:style?.color||'',background:style?.backgroundColor||'',borderColor:style?.borderColor||'',borderRadius:style?.borderRadius||'',fontFamily:style?.fontFamily||'',colorScheme:style?.colorScheme||''};}
-  function classifySendAttempt({busy,composerText,queuedText,sendReady}){if(busy)return'accepted';const current=String(composerText??'').trim();const queued=String(queuedText??'').trim();if(!current&&!sendReady)return'accepted';if(current&&current!==queued)return'interrupted';return'pending';}
-  function canPrepareQueuedSend({busy,composerText,hasAttachments}){return!busy&&!String(composerText??'').trim()&&!hasAttachments;}
+  function classifySendAttempt({busy,composerText,queuedText,sendReady,acceptBusy=true}){if(busy&&acceptBusy)return'accepted';const current=String(composerText??'').trim();const queued=String(queuedText??'').trim();if(!current&&!sendReady)return'accepted';if(current&&current!==queued)return'interrupted';return'pending';}
+  function canPrepareQueuedSend({busy,composerText,hasAttachments,allowBusy=false}){return(allowBusy||!busy)&&!String(composerText??'').trim()&&!hasAttachments;}
 
   function fileInputs(scope) {
     return scope?.querySelectorAll ? Array.from(scope.querySelectorAll('input[type="file"]')) : [];

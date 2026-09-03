@@ -1,4 +1,4 @@
-importScripts('attachment-store.js');
+importScripts('attachment-store.js', 'queue-wake.js');
 
 (() => {
   'use strict';
@@ -7,4 +7,6 @@ importScripts('attachment-store.js');
     sendResponse({ tabId: Number.isInteger(sender?.tab?.id) ? sender.tab.id : null });
     return undefined;
   });
+
+  globalThis.AiChatWebQueueWake?.installQueueWake?.(globalThis.chrome);
 })();

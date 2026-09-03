@@ -19,6 +19,55 @@
     return enabled !== false && !paused && core.canDispatch({ busy, sendReady, queueLength, dispatching, awaitingBusy });
   }
 
+  function isQueueSupportedHostname(hostname = '') {
+    const normalized = String(hostname || '').trim().toLowerCase();
+    return normalized !== 'grok.com' && !normalized.endsWith('.grok.com');
+  }
+
+  async function stageQueuedItemForDispatch({ state, itemId, persist }) {
+    const queue = state?.queue?.slice?.() || [];
+    const index = queue.findIndex((entry) => entry.id === itemId);
+    if (index < 0) return null;
+    const [item] = queue.splice(index, 1);
+    state.setQueue(queue);
+    try {
+      await persist?.();
+    } catch (error) {
+      const restored = state.queue.slice();
+      if (!restored.some((entry) => entry.id === item.id)) restored.splice(Math.max(0, Math.min(index, restored.length)), 0, item);
+      state.setQueue(restored);
+      throw error;
+    }
+    return { item, index };
+  }
+
+  async function restoreQueuedItemAfterFailedSend({ state, record, persist }) {
+    if (!record?.item) return false;
+    if (state.queue.some((entry) => entry.id === record.item.id)) return false;
+    const next = state.queue.slice();
+    next.splice(Math.max(0, Math.min(record.index, next.length)), 0, record.item);
+    state.setQueue(next);
+    await persist?.();
+    return true;
+  }
+
+  async function clearQueuedItems({ state, persist, deleteAttachments }) {
+    const previous = state?.queue?.slice?.() || [];
+    if (!previous.length) return { cleared:false, count:0 };
+    const attachments = previous.flatMap((item) => core.normalizeAttachments(item.attachments));
+    state.setQueue([]);
+    try {
+      await persist?.();
+    } catch (error) {
+      state.setQueue(previous);
+      throw error;
+    }
+    if (attachments.length) {
+      try { await deleteAttachments?.(attachments); } catch { /* queue remains cleared */ }
+    }
+    return { cleared:true, count:previous.length };
+  }
+
   async function captureQueuedMessage({ state, text, attachments = [], persist, clearComposer, now = Date.now, idFactory }) {
     const item = core.createQueueItem({ text, attachments }, now, idFactory);
     if (!item) return null;
@@ -201,6 +250,10 @@
     restoreQueuedAttachments,
     updatePausedState,
     canAutoDispatch,
+    isQueueSupportedHostname,
+    stageQueuedItemForDispatch,
+    restoreQueuedItemAfterFailedSend,
+    clearQueuedItems,
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   if (typeof globalThis !== 'undefined') (globalThis.AiChatWebSupporter ||= {}).queueController = api;
