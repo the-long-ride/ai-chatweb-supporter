@@ -23,6 +23,8 @@ All notable changes to AI Chat Web Supporter are documented here by released ver
 - Failed queue sends restore the removed item at its original position when the page remains active.
 - Steer can dispatch a selected queued message while the current ChatGPT or Claude response is already active, without falsely treating the pre-existing busy state as send acceptance.
 - Inactive ChatGPT/Claude tabs no longer depend exclusively on `requestAnimationFrame()` to continue queue reconciliation.
+- Clear all now invalidates any pending Undo record after persistence succeeds, preventing a previously deleted queue item from being resurrected.
+- Background queue wake-up now prunes closed or unreachable ChatGPT/Claude tab registrations from session storage.
 - ChatGPT batch selection remains stable across multiple checked rows and extension-owned DOM mutations no longer trigger destructive reconciliation loops.
 - ChatGPT batch archive/delete requests now use the active session/account context and current conversation mutation contracts.
 
