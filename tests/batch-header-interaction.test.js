@@ -5,7 +5,7 @@ const path = require('node:path');
 
 const css = fs.readFileSync(path.resolve(__dirname, '../src/batch/styles.css'), 'utf8');
 
-test('batch header actions defer visual styling to copied native ChatGPT classes', () => {
+test('batch header actions defer general visual styling to copied native ChatGPT classes', () => {
   const directRule = css.match(/\[data-ai-chatweb-batch-controls="true"\]\s*>\s*\[data-ai-chatweb-batch-control="true"\]\s*\{([\s\S]*?)\}/)?.[1] || '';
   assert.doesNotMatch(directRule, /padding:/);
   assert.doesNotMatch(directRule, /border-radius:/);
@@ -17,6 +17,17 @@ test('ChatGPT batch controls participate directly in the native header flex layo
   assert.match(
     css,
     /\[data-ai-chatweb-batch-controls="true"\]\[data-ai-chatweb-provider="chatgpt"\]\s*\{[\s\S]*?display:\s*contents/
+  );
+});
+
+test('ChatGPT batch actions use a native-sized symmetric hit area', () => {
+  assert.match(
+    css,
+    /\[data-ai-chatweb-batch-controls="true"\]\[data-ai-chatweb-provider="chatgpt"\]\s+\[data-ai-chatweb-batch-control="true"\]\s*\{[\s\S]*?min-width:\s*2rem[\s\S]*?min-height:\s*2rem[\s\S]*?padding-inline:\s*0\.4375rem\s*!important[\s\S]*?display:\s*inline-flex[\s\S]*?align-items:\s*center[\s\S]*?justify-content:\s*center/
+  );
+  assert.match(
+    css,
+    /\[data-ai-chatweb-batch-controls="true"\]\[data-ai-chatweb-provider="chatgpt"\]\s+\[data-ai-chatweb-batch-control="true"\]\s+svg\s*\{[\s\S]*?width:\s*1\.1875rem[\s\S]*?height:\s*1\.1875rem/
   );
 });
 

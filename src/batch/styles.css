@@ -8,6 +8,20 @@
   display: contents;
 }
 
+[data-ai-chatweb-batch-controls="true"][data-ai-chatweb-provider="chatgpt"] [data-ai-chatweb-batch-control="true"] {
+  min-width: 2rem;
+  min-height: 2rem;
+  padding-inline: 0.4375rem !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+[data-ai-chatweb-batch-controls="true"][data-ai-chatweb-provider="chatgpt"] [data-ai-chatweb-batch-control="true"] svg {
+  width: 1.1875rem;
+  height: 1.1875rem;
+}
+
 [data-ai-chatweb-batch-control="true"] {
   flex: 0 0 auto;
 }

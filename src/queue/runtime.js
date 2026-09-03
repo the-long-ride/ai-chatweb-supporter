@@ -10,7 +10,8 @@
   const scope = namespace.queueScope;
   const viewApi = namespace.queueView;
   const controllerApi = namespace.queueController;
-  if (typeof window === 'undefined' || typeof document === 'undefined' || !controllerApi) return;
+  const schedulerApi = namespace.queueScheduler;
+  if (typeof window === 'undefined' || typeof document === 'undefined' || !controllerApi || !schedulerApi) return;
   const {
     DispatchGate,
     ActiveQueueState,
@@ -22,6 +23,7 @@
     isQueueSupportedHostname,
     stageQueuedItemForDispatch,
     restoreQueuedItemAfterFailedSend,
+    clearQueuedItems,
   } = controllerApi;
   if (!isQueueSupportedHostname(globalThis.location?.hostname || '')) return;
 
@@ -39,7 +41,6 @@
   let activeProvider = null;
   let initialized = false;
   let mutationObserver = null;
-  let reconcileFrame = 0;
   let scopeSwitchPromise = null;
   let replayingAttachments = false;
 
@@ -58,7 +59,23 @@
     getProvider: () => activeProvider || currentProvider(),
     deleteAttachments: (metadata) => attachmentApiDefault.deleteAttachments(metadata),
     steerItem: (itemId) => dispatchQueuedItem(itemId, { steer: true }),
+    clearAllItems: async () => {
+      const result = await clearQueuedItems({
+        state,
+        persist:persistQueue,
+        deleteAttachments:(metadata) => attachmentApiDefault.deleteAttachments(metadata),
+      });
+      return result.cleared;
+    },
   });
+
+  const reconcileScheduler = schedulerApi.createReconcileScheduler({
+    doc:document,
+    win:window,
+    reconcile:() => reconcile(),
+  });
+
+  function scheduleReconcile() { reconcileScheduler.schedule(); }
 
   function eventBelongsToComposer(event, composer) {
     const target = event.target;
@@ -95,6 +112,21 @@
     if (latestScope && !state.isCurrentScope(latestScope)) return ensureActiveScope();
     activeProvider = latestProvider;
     return Boolean(state.scopeId && activeProvider);
+  }
+
+  function registerQueueTab() {
+    const runtime = globalThis.chrome?.runtime;
+    const provider = activeProvider || currentProvider();
+    if (!runtime?.sendMessage || !provider) return;
+    try {
+      runtime.sendMessage({ type:'aichat:queue-register', provider:provider.id }, () => { void runtime.lastError; });
+    } catch { /* registration is best effort */ }
+  }
+
+  function onRuntimeMessage(message) {
+    if (message?.type !== 'aichat:queue-reconcile') return undefined;
+    scheduleReconcile();
+    return undefined;
   }
 
   function onAttachmentEvent(event) {
@@ -147,14 +179,14 @@
     });
   }
 
-  function waitForSendAcceptance(composer, queuedText, provider, timeoutMs = 5000) {
+  function waitForSendAcceptance(composer, queuedText, provider, { timeoutMs = 5000, acceptBusy = true } = {}) {
     return new Promise((resolve) => {
       const started = Date.now();
       const check = () => {
         const currentComposer = provider.findComposer(document, window) || composer;
         const busy = Boolean(provider.findStopButton(currentComposer, document, window));
         gate.observeBusy(busy);
-        const attemptState = dom.classifySendAttempt({ busy, composerText:provider.getComposerText(currentComposer), queuedText, sendReady:dom.isButtonReady(provider.findSendButton(currentComposer, document, window), window) });
+        const attemptState = dom.classifySendAttempt({ busy, composerText:provider.getComposerText(currentComposer), queuedText, sendReady:dom.isButtonReady(provider.findSendButton(currentComposer, document, window), window), acceptBusy });
         if (attemptState !== 'pending') return resolve(attemptState === 'accepted');
         if (Date.now() - started >= timeoutMs) return resolve(false);
         window.setTimeout(check, 40);
@@ -189,7 +221,9 @@
     const dispatchPaused = state.paused;
     const dispatchProviderId = provider.id;
     const composer = provider.findComposer(document, window);
-    if (!composer || !dom.canPrepareQueuedSend({ busy:Boolean(provider.findStopButton(composer, document, window)), composerText:provider.getComposerText(composer), hasAttachments:provider.hasAttachments(composer) })) return false;
+    if (!composer) return false;
+    const busyBefore = Boolean(provider.findStopButton(composer, document, window));
+    if (!dom.canPrepareQueuedSend({ busy:busyBefore, composerText:provider.getComposerText(composer), hasAttachments:provider.hasAttachments(composer), allowBusy:steer })) return false;
 
     gate.beginDispatch();
     let sent = false;
@@ -218,7 +252,7 @@
       view.render();
 
       sendButton.click();
-      sent = await waitForSendAcceptance(composer, item.text, provider);
+      sent = await waitForSendAcceptance(composer, item.text, provider, { acceptBusy: !(steer && busyBefore) });
       if (!sent) {
         clearPreparedMessage(provider, composer, item, restoredFiles);
         await restoreQueuedItemAfterFailedSend({
@@ -265,7 +299,6 @@
   }
 
   async function reconcile() {
-    reconcileFrame = 0;
     if (!initialized || !await ensureActiveScope()) return;
     const provider = activeProvider || currentProvider();
     if (!provider) return;
@@ -278,11 +311,6 @@
     gate.observeBusy(busy);
     const safeToPrepare = dom.canPrepareQueuedSend({ busy, composerText:provider.getComposerText(composer), hasAttachments:provider.hasAttachments(composer) });
     if (gate.shouldDispatch({ enabled:queueEnabled, paused:state.paused, busy, sendReady:safeToPrepare, queueLength:state.queue.length })) void dispatchNext();
-  }
-
-  function scheduleReconcile() {
-    if (reconcileFrame) return;
-    reconcileFrame = window.requestAnimationFrame(() => { void reconcile(); });
   }
 
   function startObserver() {
@@ -307,11 +335,14 @@
     shortcut = core.normalizeShortcut(stored[SHORTCUT_KEY]);
     queueEnabled = stored[QUEUE_ENABLED_KEY] !== false;
     await ensureActiveScope();
+    registerQueueTab();
     initialized = true;
     document.addEventListener('keydown', (event) => { void onKeyDown(event); }, true);
     document.addEventListener('paste', onAttachmentEvent, true);
     document.addEventListener('drop', onAttachmentEvent, true);
     document.addEventListener('change', onAttachmentEvent, true);
+    document.addEventListener('visibilitychange', scheduleReconcile, { passive:true });
+    globalThis.chrome?.runtime?.onMessage?.addListener(onRuntimeMessage);
     globalThis.chrome?.storage?.onChanged?.addListener(onStorageChanged);
     startObserver();
     view.render();

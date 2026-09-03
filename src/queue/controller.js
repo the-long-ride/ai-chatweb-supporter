@@ -51,6 +51,23 @@
     return true;
   }
 
+  async function clearQueuedItems({ state, persist, deleteAttachments }) {
+    const previous = state?.queue?.slice?.() || [];
+    if (!previous.length) return { cleared:false, count:0 };
+    const attachments = previous.flatMap((item) => core.normalizeAttachments(item.attachments));
+    state.setQueue([]);
+    try {
+      await persist?.();
+    } catch (error) {
+      state.setQueue(previous);
+      throw error;
+    }
+    if (attachments.length) {
+      try { await deleteAttachments?.(attachments); } catch { /* queue remains cleared */ }
+    }
+    return { cleared:true, count:previous.length };
+  }
+
   async function captureQueuedMessage({ state, text, attachments = [], persist, clearComposer, now = Date.now, idFactory }) {
     const item = core.createQueueItem({ text, attachments }, now, idFactory);
     if (!item) return null;
@@ -236,6 +253,7 @@
     isQueueSupportedHostname,
     stageQueuedItemForDispatch,
     restoreQueuedItemAfterFailedSend,
+    clearQueuedItems,
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   if (typeof globalThis !== 'undefined') (globalThis.AiChatWebSupporter ||= {}).queueController = api;

@@ -10,7 +10,8 @@
     "128": "icons/icon128.png"
   },
   "permissions": [
-    "storage"
+    "storage",
+    "alarms"
   ],
   "host_permissions": [
     "https://api.github.com/*"
@@ -42,6 +43,7 @@
         "src/queue/ui.js",
         "src/queue/view.js",
         "src/queue/controller.js",
+        "src/queue/scheduler.js",
         "src/queue/runtime.js"
       ],
       "css": [
@@ -71,6 +73,7 @@
         "src/queue/ui.js",
         "src/queue/view.js",
         "src/queue/controller.js",
+        "src/queue/scheduler.js",
         "src/queue/runtime.js"
       ],
       "css": [

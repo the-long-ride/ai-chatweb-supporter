@@ -1,8 +1,8 @@
 (() => {
   'use strict';
   const MAX_VISIBLE_ITEMS = 5;
-  const ROW_HEIGHT_PX = 34;
-  const ROW_GAP_PX = 4;
+  const ROW_HEIGHT_PX = 38;
+  const ROW_GAP_PX = 6;
   const UNDO_TTL_MS = 5000;
 
   function hasQueueOverflow(count) { return Number(count) > MAX_VISIBLE_ITEMS; }

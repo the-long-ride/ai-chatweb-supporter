@@ -9,15 +9,20 @@ All notable changes to AI Chat Web Supporter are documented here by released ver
 - Provider-aware in-page confirmation dialogs and five-second glass completion toasts for batch actions.
 - Per-item Steer action for queued messages on ChatGPT and Claude, allowing a selected queued message to fill the composer and send immediately.
 - Dedicated grab handles for queued-message reordering.
+- Background-safe queued-message dispatch for open inactive ChatGPT and Claude tabs, with a service-worker wake fallback.
+- Compact Clear all control for the active queue scope, including attachment cleanup after successful persistence.
 
 ### Changed
 - Message queue support is now limited to ChatGPT and Claude so Grok can use its native queue without duplicate extension behavior.
 - ChatGPT and Grok sidebar resize handles now follow the full visible sidebar border and hide when the sidebar is collapsed, including icon-rail collapse states.
 - Batch controls use provider-native button styling where possible, including ChatGPT Recents header spacing and icons.
+- Queue Steer/Edit/Delete controls now use equal square hit areas, the drag handle aligns to the same footprint, and queued rows have slightly more bottom padding and vertical separation.
 
 ### Fixed
 - Queue dispatch now removes and persists an item before clicking Send, preventing a recently sent queued message from being replayed after a page reload.
 - Failed queue sends restore the removed item at its original position when the page remains active.
+- Steer can dispatch a selected queued message while the current ChatGPT or Claude response is already active, without falsely treating the pre-existing busy state as send acceptance.
+- Inactive ChatGPT/Claude tabs no longer depend exclusively on `requestAnimationFrame()` to continue queue reconciliation.
 - ChatGPT batch selection remains stable across multiple checked rows and extension-owned DOM mutations no longer trigger destructive reconciliation loops.
 - ChatGPT batch archive/delete requests now use the active session/account context and current conversation mutation contracts.
 
