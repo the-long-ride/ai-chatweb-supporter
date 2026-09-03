@@ -2,6 +2,25 @@
 
 All notable changes to AI Chat Web Supporter are documented here by released version.
 
+## [1.1.5] - 2026-09-03
+
+### Added
+- Batch conversation selection directly in supported sidebars, including ChatGPT archive/delete actions and delete actions for Claude and Grok.
+- Provider-aware in-page confirmation dialogs and five-second glass completion toasts for batch actions.
+- Per-item Steer action for queued messages on ChatGPT and Claude, allowing a selected queued message to fill the composer and send immediately.
+- Dedicated grab handles for queued-message reordering.
+
+### Changed
+- Message queue support is now limited to ChatGPT and Claude so Grok can use its native queue without duplicate extension behavior.
+- ChatGPT and Grok sidebar resize handles now follow the full visible sidebar border and hide when the sidebar is collapsed, including icon-rail collapse states.
+- Batch controls use provider-native button styling where possible, including ChatGPT Recents header spacing and icons.
+
+### Fixed
+- Queue dispatch now removes and persists an item before clicking Send, preventing a recently sent queued message from being replayed after a page reload.
+- Failed queue sends restore the removed item at its original position when the page remains active.
+- ChatGPT batch selection remains stable across multiple checked rows and extension-owned DOM mutations no longer trigger destructive reconciliation loops.
+- ChatGPT batch archive/delete requests now use the active session/account context and current conversation mutation contracts.
+
 ## [1.1.4] - 2026-08-26
 
 ### Added
