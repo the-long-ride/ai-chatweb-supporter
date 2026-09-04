@@ -2,7 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const constants = require('../src/shared/constants.js');
 
-test('stable storage keys remain backward-compatible and include queue and Claude toggles', () => {
+test('stable storage keys include queue, Claude, and auto-continue settings', () => {
   assert.deepEqual(constants.STORAGE_KEYS, {
     sidebarWidth: 'cgptSidebarResizerWidth',
     grokSidebarWidth: 'grokSidebarResizerWidth',
@@ -10,5 +10,8 @@ test('stable storage keys remain backward-compatible and include queue and Claud
     queueShortcut: 'cgptQueueShortcut',
     queueEnabled: 'queueEnabled',
     claudeAutoContinue: 'claudeAutoContinue',
+    autoContinueEnabled: 'autoContinueEnabled',
+    autoContinueMatchText: 'autoContinueMatchText',
+    chatgptErrorAutoContinue: 'chatgptErrorAutoContinue',
   });
 });
