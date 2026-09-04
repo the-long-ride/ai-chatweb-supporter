@@ -18,33 +18,35 @@ function fakeChrome() {
   };
 }
 
-test('registration accepts only ChatGPT and Claude', async () => {
+test('registration accepts ChatGPT, Claude, and Grok', async () => {
   const chrome = fakeChrome();
   assert.equal(await registerQueueTab(chrome, 7, 'chatgpt'), true);
   assert.equal(await registerQueueTab(chrome, 8, 'claude'), true);
-  assert.equal(await registerQueueTab(chrome, 9, 'grok'), false);
-  assert.deepEqual(chrome.session[REGISTRY_KEY], { '7':'chatgpt', '8':'claude' });
+  assert.equal(await registerQueueTab(chrome, 9, 'grok'), true);
+  assert.equal(await registerQueueTab(chrome, 10, 'unknown'), false);
+  assert.deepEqual(chrome.session[REGISTRY_KEY], { '7':'chatgpt', '8':'claude', '9':'grok' });
 });
 
-test('wake sends only queue reconcile messages', async () => {
+test('wake sends reconcile messages to all registered provider tabs', async () => {
   const chrome = fakeChrome();
-  chrome.session[REGISTRY_KEY] = { '7':'chatgpt', '8':'claude' };
+  chrome.session[REGISTRY_KEY] = { '7':'chatgpt', '8':'claude', '9':'grok' };
   await wakeRegisteredQueueTabs(chrome);
   assert.deepEqual(chrome.sent, [
     [7, { type:'aichat:queue-reconcile' }],
     [8, { type:'aichat:queue-reconcile' }],
+    [9, { type:'aichat:queue-reconcile' }],
   ]);
 });
 
 test('unreachable tabs are pruned', async () => {
   const chrome = fakeChrome();
-  chrome.session[REGISTRY_KEY] = { '7':'chatgpt', '8':'claude' };
+  chrome.session[REGISTRY_KEY] = { '7':'chatgpt', '8':'claude', '9':'grok' };
   chrome.tabs.sendMessage = async (tabId, message) => {
     chrome.sent.push([tabId, message]);
     if (tabId === 7) throw new Error('gone');
   };
   await wakeRegisteredQueueTabs(chrome);
-  assert.deepEqual(chrome.session[REGISTRY_KEY], { '8':'claude' });
+  assert.deepEqual(chrome.session[REGISTRY_KEY], { '8':'claude', '9':'grok' });
 });
 
 test('service worker imports and installs queue wake helper', () => {
