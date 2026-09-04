@@ -6,6 +6,9 @@
     queueShortcut: SHORTCUT_KEY,
     queueEnabled: QUEUE_ENABLED_KEY,
     claudeAutoContinue: CLAUDE_AUTO_CONTINUE_KEY,
+    autoContinueEnabled: AUTO_CONTINUE_ENABLED_KEY,
+    autoContinueMatchText: AUTO_CONTINUE_MATCH_TEXT_KEY,
+    chatgptErrorAutoContinue: CHATGPT_ERROR_AUTO_CONTINUE_KEY,
   } = namespace.constants.STORAGE_KEYS;
   const storage = namespace.storage;
   const core = namespace.queueCore;
@@ -14,6 +17,9 @@
   const shortcutList = document.querySelector('.shortcut-list');
   const queueEnabled = document.querySelector('#queue-enabled');
   const claudeAutoContinue = document.querySelector('#claude-auto-continue');
+  const autoContinueEnabled = document.querySelector('#auto-continue-enabled');
+  const autoContinueMatchText = document.querySelector('#auto-continue-match-text');
+  const chatgptErrorAutoContinue = document.querySelector('#chatgpt-error-auto-continue');
   const updateNotice = document.querySelector('#update-notice');
   const updateVersion = document.querySelector('#update-version');
   const updateDownload = document.querySelector('#update-download');
@@ -31,6 +37,20 @@
 
   function selectClaudeAutoContinue(value) {
     if (claudeAutoContinue) claudeAutoContinue.checked = value !== false;
+  }
+
+  function selectAutoContinueEnabled(value) {
+    const enabled = value === true;
+    if (autoContinueEnabled) autoContinueEnabled.checked = enabled;
+    if (autoContinueMatchText) autoContinueMatchText.disabled = !enabled;
+  }
+
+  function selectAutoContinueMatchText(value) {
+    if (autoContinueMatchText) autoContinueMatchText.value = String(value || '');
+  }
+
+  function selectChatgptErrorAutoContinue(value) {
+    if (chatgptErrorAutoContinue) chatgptErrorAutoContinue.checked = value !== false;
   }
 
   async function checkForUpdate() {
@@ -55,10 +75,20 @@
     }
   }
 
-  void storage.get([SHORTCUT_KEY, QUEUE_ENABLED_KEY, CLAUDE_AUTO_CONTINUE_KEY]).then((result) => {
+  void storage.get([
+    SHORTCUT_KEY,
+    QUEUE_ENABLED_KEY,
+    CLAUDE_AUTO_CONTINUE_KEY,
+    AUTO_CONTINUE_ENABLED_KEY,
+    AUTO_CONTINUE_MATCH_TEXT_KEY,
+    CHATGPT_ERROR_AUTO_CONTINUE_KEY,
+  ]).then((result) => {
     selectShortcut(result?.[SHORTCUT_KEY]);
     selectQueueEnabled(result?.[QUEUE_ENABLED_KEY]);
     selectClaudeAutoContinue(result?.[CLAUDE_AUTO_CONTINUE_KEY]);
+    selectAutoContinueEnabled(result?.[AUTO_CONTINUE_ENABLED_KEY]);
+    selectAutoContinueMatchText(result?.[AUTO_CONTINUE_MATCH_TEXT_KEY]);
+    selectChatgptErrorAutoContinue(result?.[CHATGPT_ERROR_AUTO_CONTINUE_KEY]);
   });
 
   for (const radio of radios) {
@@ -76,11 +106,27 @@
     void storage.set({ [CLAUDE_AUTO_CONTINUE_KEY]: claudeAutoContinue.checked });
   });
 
+  autoContinueEnabled?.addEventListener('change', () => {
+    selectAutoContinueEnabled(autoContinueEnabled.checked);
+    void storage.set({ [AUTO_CONTINUE_ENABLED_KEY]: autoContinueEnabled.checked });
+  });
+
+  autoContinueMatchText?.addEventListener('input', () => {
+    void storage.set({ [AUTO_CONTINUE_MATCH_TEXT_KEY]: autoContinueMatchText.value });
+  });
+
+  chatgptErrorAutoContinue?.addEventListener('change', () => {
+    void storage.set({ [CHATGPT_ERROR_AUTO_CONTINUE_KEY]: chatgptErrorAutoContinue.checked });
+  });
+
   chrome.storage.onChanged.addListener((changes, areaName) => {
     if (areaName !== 'local') return;
     if (changes[SHORTCUT_KEY]) selectShortcut(changes[SHORTCUT_KEY].newValue);
     if (changes[QUEUE_ENABLED_KEY]) selectQueueEnabled(changes[QUEUE_ENABLED_KEY].newValue);
     if (changes[CLAUDE_AUTO_CONTINUE_KEY]) selectClaudeAutoContinue(changes[CLAUDE_AUTO_CONTINUE_KEY].newValue);
+    if (changes[AUTO_CONTINUE_ENABLED_KEY]) selectAutoContinueEnabled(changes[AUTO_CONTINUE_ENABLED_KEY].newValue);
+    if (changes[AUTO_CONTINUE_MATCH_TEXT_KEY]) selectAutoContinueMatchText(changes[AUTO_CONTINUE_MATCH_TEXT_KEY].newValue);
+    if (changes[CHATGPT_ERROR_AUTO_CONTINUE_KEY]) selectChatgptErrorAutoContinue(changes[CHATGPT_ERROR_AUTO_CONTINUE_KEY].newValue);
   });
 
   void checkForUpdate();
