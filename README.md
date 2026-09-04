@@ -12,6 +12,8 @@ A dependency-free Chromium extension with local productivity tools for **ChatGPT
 - Rich queued messages persist attachment metadata in queue state and attachment bytes in extension-owned IndexedDB; replay restores files before sending.
 - Pause automatic replay while an unrelated draft or attachment would make dispatch unsafe.
 - On **Claude**, optionally auto-click the specific **Continue** action shown after Claude reaches its per-turn tool-use limit. This is enabled by default and can be disabled in the extension popup.
+- On **ChatGPT, Claude, and Grok**, optionally watch the latest finished AI response for configurable text (for example, `Incompleted`) and automatically send `continue remaining works`. Matching ignores case and repeated whitespace, and each response triggers at most once.
+- On **ChatGPT**, message-stream errors can automatically send `continue remaining works`; this recovery has its own popup toggle.
 - Resize **ChatGPT and Grok sidebars** from **220–700 px** with independent saved widths; Claude has no sidebar resizing.
 - Store queue/settings in `chrome.storage.local`; queued attachment bytes stay local in extension IndexedDB. No attachment data is sent anywhere except the selected AI site when its queued message is replayed.
 
@@ -30,4 +32,4 @@ node --test tests/*.test.js
 
 ## Privacy
 
-The extension requests only Chromium's `storage` permission and keeps extension state in local browser storage.
+The extension requests Chromium's `storage` and `alarms` permissions. Settings and queue state stay local; alarms only wake supported open chat tabs for background reconciliation. No browsing data is sent anywhere else by the extension.
