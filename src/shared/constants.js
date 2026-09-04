@@ -8,6 +8,9 @@
     queueShortcut: 'cgptQueueShortcut',
     queueEnabled: 'queueEnabled',
     claudeAutoContinue: 'claudeAutoContinue',
+    autoContinueEnabled: 'autoContinueEnabled',
+    autoContinueMatchText: 'autoContinueMatchText',
+    chatgptErrorAutoContinue: 'chatgptErrorAutoContinue',
   });
 
   const api = { STORAGE_KEYS };
