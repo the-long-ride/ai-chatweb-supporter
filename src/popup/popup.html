@@ -32,6 +32,28 @@
       </label>
     </fieldset>
 
+    <section class="setting-section" aria-label="Auto continue settings">
+      <div class="section-title">AUTO CONTINUE</div>
+      <label class="toggle-row" for="auto-continue-enabled">
+        <span class="shortcut-copy"><strong>Continue on response text</strong><small>Send “continue remaining works” when the latest AI response contains the configured text</small></span>
+        <span class="switch">
+          <input id="auto-continue-enabled" type="checkbox">
+          <span class="switch-track" aria-hidden="true"></span>
+        </span>
+      </label>
+      <label class="text-setting-row" for="auto-continue-match-text">
+        <span class="shortcut-copy"><strong>Trigger text</strong><small>Case-insensitive; extra whitespace is ignored</small></span>
+        <input id="auto-continue-match-text" class="text-setting-input" type="text" placeholder="Incompleted" autocomplete="off" spellcheck="false">
+      </label>
+      <label class="toggle-row" for="chatgpt-error-auto-continue">
+        <span class="shortcut-copy"><strong>ChatGPT error recovery</strong><small>Send “continue remaining works” when ChatGPT shows its message-stream error banner</small></span>
+        <span class="switch">
+          <input id="chatgpt-error-auto-continue" type="checkbox">
+          <span class="switch-track" aria-hidden="true"></span>
+        </span>
+      </label>
+    </section>
+
     <section class="setting-section" aria-label="Claude settings">
       <div class="section-title">CLAUDE</div>
       <label class="toggle-row" for="claude-auto-continue">
