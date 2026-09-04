@@ -2,6 +2,16 @@
 
 All notable changes to AI Chat Web Supporter are documented here by released version.
 
+## Unreleased
+
+### Added
+- Configurable cross-provider auto-continue rule for ChatGPT, Claude, and Grok that sends `continue remaining works` when the latest completed assistant response contains user-configured text.
+- Popup switch and trigger-text input for response-based auto-continue, plus a separate ChatGPT message-stream error recovery switch.
+- Background wake registration for Grok so auto-continue checks can run in inactive open tabs.
+
+### Changed
+- ChatGPT message-stream error recovery now respects its popup setting while preserving the previous enabled-by-default behavior.
+
 ## [1.1.5] - 2026-09-03
 
 ### Added
