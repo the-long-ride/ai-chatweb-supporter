@@ -4,7 +4,7 @@
   const REGISTRY_KEY = 'aichat.queue.registeredTabs';
   const ALARM_NAME = 'aichat:queue-wake';
   const WAKE_PERIOD_MINUTES = 1;
-  const ALLOWED_PROVIDERS = new Set(['chatgpt', 'claude']);
+  const ALLOWED_PROVIDERS = new Set(['chatgpt', 'claude', 'grok']);
 
   async function readRegistry(chromeApi) {
     const stored = await chromeApi.storage.session.get(REGISTRY_KEY);
