@@ -12,6 +12,7 @@
     autoContinueMatchText: 'autoContinueMatchText',
     chatgptErrorAutoContinue: 'chatgptErrorAutoContinue',
     backgroundKeepAwake: 'backgroundKeepAwake',
+    popupTheme: 'popupTheme',
   });
 
   const api = { STORAGE_KEYS };

@@ -8,12 +8,21 @@
 </head>
 <body>
   <main class="popup-shell">
-    <div class="eyebrow popup-brand">AI CHAT WEB SUPPORTER</div>
+    <header class="popup-header">
+      <div class="eyebrow popup-brand">AI CHAT WEB SUPPORTER</div>
+      <div class="popup-header-tools">
+        <span id="extension-version" class="extension-version" aria-label="Extension version"></span>
+        <label class="theme-switch" for="theme-toggle" title="Toggle light and dark mode">
+          <input id="theme-toggle" type="checkbox" role="switch" aria-label="Dark mode">
+          <span class="theme-switch-track" aria-hidden="true"></span>
+        </label>
+      </div>
+    </header>
 
     <section class="setting-section" aria-label="Queue settings">
       <div class="section-title">QUEUE</div>
       <label class="toggle-row" for="queue-enabled">
-        <span class="shortcut-copy"><strong>Message queue</strong><small>Queue shortcut prompts instead of sending them directly</small></span>
+        <span class="shortcut-copy"><strong>Message queue</strong><small>Queue prompts with the shortcut</small></span>
         <span class="switch">
           <input id="queue-enabled" type="checkbox">
           <span class="switch-track" aria-hidden="true"></span>
@@ -32,10 +41,43 @@
       </label>
     </fieldset>
 
+    <section class="setting-section" aria-label="Background settings">
+      <div class="section-title">BACKGROUND</div>
+      <label class="toggle-row" for="background-keep-awake">
+        <span class="shortcut-copy"><strong>Keep device awake</strong><small>Prevent idle sleep; display may turn off</small></span>
+        <span class="switch">
+          <input id="background-keep-awake" type="checkbox">
+          <span class="switch-track" aria-hidden="true"></span>
+        </span>
+      </label>
+    </section>
+
+    <section class="setting-section" aria-label="ChatGPT continuation settings">
+      <div class="section-title">CHATGPT</div>
+      <label class="toggle-row" for="auto-continue-enabled">
+        <span class="shortcut-copy"><strong>Continue on response text</strong><small>Send “continue remaining works” on match · all sites</small></span>
+        <span class="switch">
+          <input id="auto-continue-enabled" type="checkbox">
+          <span class="switch-track" aria-hidden="true"></span>
+        </span>
+      </label>
+      <label class="text-setting-row" for="auto-continue-match-text">
+        <span class="shortcut-copy"><strong>Trigger text</strong><small>Case-insensitive · whitespace ignored</small></span>
+        <input id="auto-continue-match-text" class="text-setting-input" type="text" placeholder="Incompleted" autocomplete="off" spellcheck="false">
+      </label>
+      <label class="toggle-row" for="chatgpt-error-auto-continue">
+        <span class="shortcut-copy"><strong>Error recovery</strong><small>Continue after ChatGPT stream errors</small></span>
+        <span class="switch">
+          <input id="chatgpt-error-auto-continue" type="checkbox">
+          <span class="switch-track" aria-hidden="true"></span>
+        </span>
+      </label>
+    </section>
+
     <section class="setting-section" aria-label="Claude settings">
       <div class="section-title">CLAUDE</div>
       <label class="toggle-row" for="claude-auto-continue">
-        <span class="shortcut-copy"><strong>Auto-continue tools</strong><small>Click Continue when Claude reaches its per-turn tool-use limit</small></span>
+        <span class="shortcut-copy"><strong>Auto-continue tools</strong><small>Continue after the per-turn tool limit</small></span>
         <span class="switch">
           <input id="claude-auto-continue" type="checkbox">
           <span class="switch-track" aria-hidden="true"></span>
@@ -43,7 +85,7 @@
       </label>
     </section>
 
-    <footer class="popup-footer">Settings stored locally · GitHub checked for updates</footer>
+    <footer class="popup-footer">Local settings · GitHub update check</footer>
 
     <section id="update-notice" class="update-notice" role="status" aria-live="polite" hidden>
       <span class="update-copy">New version released — <strong id="update-version"></strong></span>

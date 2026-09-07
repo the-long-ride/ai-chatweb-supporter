@@ -6,6 +6,11 @@
     queueShortcut: SHORTCUT_KEY,
     queueEnabled: QUEUE_ENABLED_KEY,
     claudeAutoContinue: CLAUDE_AUTO_CONTINUE_KEY,
+    autoContinueEnabled: AUTO_CONTINUE_ENABLED_KEY,
+    autoContinueMatchText: AUTO_CONTINUE_MATCH_TEXT_KEY,
+    chatgptErrorAutoContinue: CHATGPT_ERROR_AUTO_CONTINUE_KEY,
+    backgroundKeepAwake: BACKGROUND_KEEP_AWAKE_KEY,
+    popupTheme: POPUP_THEME_KEY,
   } = namespace.constants.STORAGE_KEYS;
   const storage = namespace.storage;
   const core = namespace.queueCore;
@@ -14,9 +19,38 @@
   const shortcutList = document.querySelector('.shortcut-list');
   const queueEnabled = document.querySelector('#queue-enabled');
   const claudeAutoContinue = document.querySelector('#claude-auto-continue');
+  const autoContinueEnabled = document.querySelector('#auto-continue-enabled');
+  const autoContinueMatchText = document.querySelector('#auto-continue-match-text');
+  const chatgptErrorAutoContinue = document.querySelector('#chatgpt-error-auto-continue');
+  const backgroundKeepAwake = document.querySelector('#background-keep-awake');
+  const extensionVersion = document.querySelector('#extension-version');
+  const themeToggle = document.querySelector('#theme-toggle');
   const updateNotice = document.querySelector('#update-notice');
   const updateVersion = document.querySelector('#update-version');
   const updateDownload = document.querySelector('#update-download');
+  const themeMedia = globalThis.matchMedia?.('(prefers-color-scheme: dark)');
+  const currentVersion = globalThis.chrome?.runtime?.getManifest?.()?.version || '';
+  let explicitTheme = null;
+
+  if (extensionVersion && currentVersion) extensionVersion.textContent = `v${currentVersion}`;
+
+  function normalizeTheme(value) {
+    return value === 'light' || value === 'dark' ? value : null;
+  }
+
+  function preferredTheme() {
+    return themeMedia?.matches ? 'dark' : 'light';
+  }
+
+  function applyTheme(value) {
+    const theme = normalizeTheme(value) || preferredTheme();
+    document.documentElement.dataset.theme = theme;
+    if (themeToggle) {
+      themeToggle.checked = theme === 'dark';
+      themeToggle.setAttribute('aria-label', theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode');
+    }
+    return theme;
+  }
 
   function selectShortcut(value) {
     const normalized = core.normalizeShortcut(value);
@@ -33,10 +67,26 @@
     if (claudeAutoContinue) claudeAutoContinue.checked = value !== false;
   }
 
+  function selectAutoContinueEnabled(value) {
+    const enabled = value === true;
+    if (autoContinueEnabled) autoContinueEnabled.checked = enabled;
+    if (autoContinueMatchText) autoContinueMatchText.disabled = !enabled;
+  }
+
+  function selectAutoContinueMatchText(value) {
+    if (autoContinueMatchText) autoContinueMatchText.value = String(value || '');
+  }
+
+  function selectChatgptErrorAutoContinue(value) {
+    if (chatgptErrorAutoContinue) chatgptErrorAutoContinue.checked = value !== false;
+  }
+
+  function selectBackgroundKeepAwake(value) {
+    if (backgroundKeepAwake) backgroundKeepAwake.checked = value === true;
+  }
+
   async function checkForUpdate() {
-    if (!updater || !updateNotice || !updateVersion || !updateDownload) return;
-    const currentVersion = globalThis.chrome?.runtime?.getManifest?.()?.version;
-    if (!currentVersion) return;
+    if (!updater || !updateNotice || !updateVersion || !updateDownload || !currentVersion) return;
     try {
       const response = await globalThis.fetch(updater.LATEST_RELEASE_URL, {
         cache: 'no-store',
@@ -55,10 +105,25 @@
     }
   }
 
-  void storage.get([SHORTCUT_KEY, QUEUE_ENABLED_KEY, CLAUDE_AUTO_CONTINUE_KEY]).then((result) => {
+  void storage.get([
+    SHORTCUT_KEY,
+    QUEUE_ENABLED_KEY,
+    CLAUDE_AUTO_CONTINUE_KEY,
+    AUTO_CONTINUE_ENABLED_KEY,
+    AUTO_CONTINUE_MATCH_TEXT_KEY,
+    CHATGPT_ERROR_AUTO_CONTINUE_KEY,
+    BACKGROUND_KEEP_AWAKE_KEY,
+    POPUP_THEME_KEY,
+  ]).then((result) => {
     selectShortcut(result?.[SHORTCUT_KEY]);
     selectQueueEnabled(result?.[QUEUE_ENABLED_KEY]);
     selectClaudeAutoContinue(result?.[CLAUDE_AUTO_CONTINUE_KEY]);
+    selectAutoContinueEnabled(result?.[AUTO_CONTINUE_ENABLED_KEY]);
+    selectAutoContinueMatchText(result?.[AUTO_CONTINUE_MATCH_TEXT_KEY]);
+    selectChatgptErrorAutoContinue(result?.[CHATGPT_ERROR_AUTO_CONTINUE_KEY]);
+    selectBackgroundKeepAwake(result?.[BACKGROUND_KEEP_AWAKE_KEY]);
+    explicitTheme = normalizeTheme(result?.[POPUP_THEME_KEY]);
+    applyTheme(explicitTheme);
   });
 
   for (const radio of radios) {
@@ -76,12 +141,49 @@
     void storage.set({ [CLAUDE_AUTO_CONTINUE_KEY]: claudeAutoContinue.checked });
   });
 
+  autoContinueEnabled?.addEventListener('change', () => {
+    selectAutoContinueEnabled(autoContinueEnabled.checked);
+    void storage.set({ [AUTO_CONTINUE_ENABLED_KEY]: autoContinueEnabled.checked });
+  });
+
+  autoContinueMatchText?.addEventListener('input', () => {
+    void storage.set({ [AUTO_CONTINUE_MATCH_TEXT_KEY]: autoContinueMatchText.value });
+  });
+
+  chatgptErrorAutoContinue?.addEventListener('change', () => {
+    void storage.set({ [CHATGPT_ERROR_AUTO_CONTINUE_KEY]: chatgptErrorAutoContinue.checked });
+  });
+
+  backgroundKeepAwake?.addEventListener('change', () => {
+    void storage.set({ [BACKGROUND_KEEP_AWAKE_KEY]: backgroundKeepAwake.checked });
+  });
+
+  themeToggle?.addEventListener('change', () => {
+    const theme = themeToggle.checked ? 'dark' : 'light';
+    explicitTheme = theme;
+    applyTheme(theme);
+    void storage.set({ [POPUP_THEME_KEY]: theme });
+  });
+
+  themeMedia?.addEventListener?.('change', () => {
+    if (!explicitTheme) applyTheme(null);
+  });
+
   chrome.storage.onChanged.addListener((changes, areaName) => {
     if (areaName !== 'local') return;
     if (changes[SHORTCUT_KEY]) selectShortcut(changes[SHORTCUT_KEY].newValue);
     if (changes[QUEUE_ENABLED_KEY]) selectQueueEnabled(changes[QUEUE_ENABLED_KEY].newValue);
     if (changes[CLAUDE_AUTO_CONTINUE_KEY]) selectClaudeAutoContinue(changes[CLAUDE_AUTO_CONTINUE_KEY].newValue);
+    if (changes[AUTO_CONTINUE_ENABLED_KEY]) selectAutoContinueEnabled(changes[AUTO_CONTINUE_ENABLED_KEY].newValue);
+    if (changes[AUTO_CONTINUE_MATCH_TEXT_KEY]) selectAutoContinueMatchText(changes[AUTO_CONTINUE_MATCH_TEXT_KEY].newValue);
+    if (changes[CHATGPT_ERROR_AUTO_CONTINUE_KEY]) selectChatgptErrorAutoContinue(changes[CHATGPT_ERROR_AUTO_CONTINUE_KEY].newValue);
+    if (changes[BACKGROUND_KEEP_AWAKE_KEY]) selectBackgroundKeepAwake(changes[BACKGROUND_KEEP_AWAKE_KEY].newValue);
+    if (changes[POPUP_THEME_KEY]) {
+      explicitTheme = normalizeTheme(changes[POPUP_THEME_KEY].newValue);
+      applyTheme(explicitTheme);
+    }
   });
 
+  applyTheme(null);
   void checkForUpdate();
 })();
