@@ -10,8 +10,8 @@ function withQueue(items) {
 
 test('clearQueuedItems persists empty queue before attachment cleanup', async () => {
   const state = withQueue([
-    { id:'a', text:'one', attachments:[{ id:'blob-a', name:'a.png', type:'image/png', size:1 }] },
-    { id:'b', text:'two' },
+    { id:'a', text:'one', createdAt:1, attachments:[{ id:'blob-a', name:'a.png', type:'image/png', size:1 }] },
+    { id:'b', text:'two', createdAt:2 },
   ]);
   const order = [];
   const result = await clearQueuedItems({
@@ -25,14 +25,15 @@ test('clearQueuedItems persists empty queue before attachment cleanup', async ()
 });
 
 test('clearQueuedItems restores queue and does not delete attachments when persistence fails', async () => {
-  const original = [{ id:'a', text:'one', attachments:[{ id:'blob-a', name:'a.png', type:'image/png', size:1 }] }];
+  const original = [{ id:'a', text:'one', createdAt:1, attachments:[{ id:'blob-a', name:'a.png', type:'image/png', size:1 }] }];
   const state = withQueue(original);
+  const expected = state.queue.slice();
   let deletes = 0;
   await assert.rejects(clearQueuedItems({
     state,
     persist: async () => { throw new Error('storage failed'); },
     deleteAttachments: async () => { deletes += 1; },
   }), /storage failed/);
-  assert.deepEqual(state.queue, original);
+  assert.deepEqual(state.queue, expected);
   assert.equal(deletes, 0);
 });

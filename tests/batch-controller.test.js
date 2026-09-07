@@ -149,10 +149,10 @@ test('batch header controls preserve native visibility and do not impose icon pa
   const fs = require('node:fs');
   const path = require('node:path');
   const css = fs.readFileSync(path.resolve(__dirname, '../src/batch/styles.css'), 'utf8');
-  const genericControlBlock = css.match(/\[data-ai-chatweb-batch-control="true"\]\s*\{([^}]*)\}/)?.[1] || '';
+  const genericControlBlock = css.match(/^\[data-ai-chatweb-batch-control="true"\]\s*\{([^}]*)\}/m)?.[1] || '';
   assert.doesNotMatch(genericControlBlock, /opacity:\s*1\s*!important/);
   assert.doesNotMatch(genericControlBlock, /visibility:\s*visible\s*!important/);
-  const iconBlock = css.match(/\[data-ai-chatweb-batch-control="true"\]\s+svg\s*\{([^}]*)\}/)?.[1] || '';
+  const iconBlock = css.match(/^\[data-ai-chatweb-batch-control="true"\]\s+svg\s*\{([^}]*)\}/m)?.[1] || '';
   assert.doesNotMatch(iconBlock, /padding:/);
   assert.match(iconBlock, /pointer-events:\s*none/);
 });
