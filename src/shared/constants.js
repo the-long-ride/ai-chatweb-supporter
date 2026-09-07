@@ -8,6 +8,10 @@
     queueShortcut: 'cgptQueueShortcut',
     queueEnabled: 'queueEnabled',
     claudeAutoContinue: 'claudeAutoContinue',
+    autoContinueEnabled: 'autoContinueEnabled',
+    autoContinueMatchText: 'autoContinueMatchText',
+    chatgptErrorAutoContinue: 'chatgptErrorAutoContinue',
+    backgroundKeepAwake: 'backgroundKeepAwake',
   });
 
   const api = { STORAGE_KEYS };
