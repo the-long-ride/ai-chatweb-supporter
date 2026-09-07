@@ -2,6 +2,26 @@
 
 All notable changes to AI Chat Web Supporter are documented here by released version.
 
+## Unreleased
+
+## [1.1.6] - 2026-09-08
+
+### Added
+- Configurable cross-provider auto-continue rule for ChatGPT, Claude, and Grok that sends `continue remaining works` when the latest completed assistant response contains user-configured text.
+- Popup switch and trigger-text input for response-based auto-continue, plus a separate ChatGPT message-stream error recovery switch.
+- Background wake registration for Grok so auto-continue checks can run in inactive open tabs.
+- Optional Background > Keep device awake setting using Chromium's `power` API to prevent idle system sleep while allowing the display to turn off.
+- Popup light/dark mode switch with the selected theme persisted locally; first use follows the operating-system theme.
+- Installed extension version shown beside the popup theme switch, read directly from the manifest at runtime.
+
+### Changed
+- ChatGPT message-stream error recovery now respects its popup setting while preserving the previous enabled-by-default behavior.
+- Background reconciliation scans all open tabs every 30 seconds instead of depending only on prior tab registration.
+- Popup settings are more compact and continuation controls are grouped under ChatGPT and Claude section headings.
+
+### Fixed
+- When Background > Keep device awake is enabled and the machine is locked or idle, frozen/discarded ChatGPT, Claude, and Grok tabs are temporarily activated within their existing browser window so reconciliation can run, then the previously active tab is restored.
+
 ## [1.1.5] - 2026-09-03
 
 ### Added
