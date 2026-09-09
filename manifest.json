@@ -13,10 +13,13 @@
     "storage",
     "alarms",
     "power",
-    "idle"
+    "idle",
+    "webRequest",
+    "tabs"
   ],
   "host_permissions": [
-    "https://api.github.com/*"
+    "https://api.github.com/*",
+    "https://chatgpt.com/backend-api/*"
   ],
   "action": {
     "default_title": "AI Chat Web Supporter settings",

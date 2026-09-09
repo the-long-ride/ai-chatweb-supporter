@@ -1,4 +1,4 @@
-importScripts('attachment-store.js', 'queue-wake.js');
+importScripts('attachment-store.js', 'queue-wake.js', 'chatgpt-queue-dispatch.js');
 
 (() => {
   'use strict';
@@ -42,4 +42,5 @@ importScripts('attachment-store.js', 'queue-wake.js');
   globalThis.chrome?.storage?.onChanged?.addListener(onStorageChanged);
   void syncKeepAwake();
   globalThis.AiChatWebQueueWake?.installQueueWake?.(globalThis.chrome);
+  globalThis.AiChatWebQueueDispatch?.installChatGptQueueDispatch?.(globalThis.chrome);
 })();

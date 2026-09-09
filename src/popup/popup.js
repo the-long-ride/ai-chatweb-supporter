@@ -11,10 +11,15 @@
     chatgptErrorAutoContinue: CHATGPT_ERROR_AUTO_CONTINUE_KEY,
     backgroundKeepAwake: BACKGROUND_KEEP_AWAKE_KEY,
     popupTheme: POPUP_THEME_KEY,
+    messageQueue: MESSAGE_QUEUE_KEY,
   } = namespace.constants.STORAGE_KEYS;
   const storage = namespace.storage;
   const core = namespace.queueCore;
   const updater = namespace.popupUpdate;
+
+  const MOON_SVG = `<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+  const SUN_SVG = `<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="5" stroke="currentColor" stroke-width="2"/><line x1="12" y1="1" x2="12" y2="3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="21" x2="12" y2="23" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="1" y1="12" x2="3" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="21" y1="12" x2="23" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`;
+  const TRASH_SVG = `<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 7h14M9 7V4h6v3M8 10v8M12 10v8M16 10v8" stroke="currentColor"/></svg>`;
   const radios = [...document.querySelectorAll('input[name="queue-shortcut"]')];
   const shortcutList = document.querySelector('.shortcut-list');
   const queueEnabled = document.querySelector('#queue-enabled');
@@ -25,6 +30,7 @@
   const backgroundKeepAwake = document.querySelector('#background-keep-awake');
   const extensionVersion = document.querySelector('#extension-version');
   const themeToggle = document.querySelector('#theme-toggle');
+  const clearQueueAll = document.querySelector('#clear-queue-all');
   const updateNotice = document.querySelector('#update-notice');
   const updateVersion = document.querySelector('#update-version');
   const updateDownload = document.querySelector('#update-download');
@@ -46,8 +52,9 @@
     const theme = normalizeTheme(value) || preferredTheme();
     document.documentElement.dataset.theme = theme;
     if (themeToggle) {
-      themeToggle.checked = theme === 'dark';
-      themeToggle.setAttribute('aria-label', theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode');
+      const isDark = theme === 'dark';
+      themeToggle.innerHTML = isDark ? SUN_SVG : MOON_SVG;
+      themeToggle.setAttribute('aria-label', isDark ? 'Switch to light mode' : 'Switch to dark mode');
     }
     return theme;
   }
@@ -158,11 +165,31 @@
     void storage.set({ [BACKGROUND_KEEP_AWAKE_KEY]: backgroundKeepAwake.checked });
   });
 
-  themeToggle?.addEventListener('change', () => {
-    const theme = themeToggle.checked ? 'dark' : 'light';
+  themeToggle?.addEventListener('click', () => {
+    const theme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
     explicitTheme = theme;
     applyTheme(theme);
     void storage.set({ [POPUP_THEME_KEY]: theme });
+  });
+
+  clearQueueAll?.addEventListener('click', async () => {
+    clearQueueAll.disabled = true;
+    try {
+      const allStorage = await new Promise((resolve) => {
+        chrome.storage.local.get(null, resolve);
+      });
+      const keys = Object.keys(allStorage).filter(
+        (k) => k === MESSAGE_QUEUE_KEY || k.startsWith(MESSAGE_QUEUE_KEY + ':')
+      );
+      if (keys.length) await Promise.all(keys.map((k) => storage.remove(k)));
+      clearQueueAll.innerHTML = '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+      setTimeout(() => {
+        clearQueueAll.disabled = false;
+        clearQueueAll.innerHTML = TRASH_SVG;
+      }, 1200);
+    } catch {
+      clearQueueAll.disabled = false;
+    }
   });
 
   themeMedia?.addEventListener?.('change', () => {
