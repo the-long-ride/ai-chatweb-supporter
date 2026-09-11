@@ -130,6 +130,44 @@ test('successful batch exits selection mode and clears selection', async () => {
   assert.equal(controller.selection.size, 0);
 });
 
+test('runAction executes mutations in parallel across selected items', async () => {
+  let active = 0;
+  let maxActive = 0;
+  const { controller, rows } = harness();
+  controller.reconcile();
+  controller.adapter.deleteConversation = async () => {
+    active++;
+    maxActive = Math.max(maxActive, active);
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    active--;
+  };
+  controller.enterSelectionMode();
+  controller.toggleRow(rows[0]);
+  controller.toggleRow(rows[1]);
+  await controller.runAction('delete');
+  assert.equal(maxActive, 2);
+  assert.equal(controller.selectionMode, false);
+});
+
+test('runAction respects concurrency option when provided', async () => {
+  let active = 0;
+  let maxActive = 0;
+  const { controller, rows } = harness();
+  controller.concurrency = 1;
+  controller.reconcile();
+  controller.adapter.deleteConversation = async () => {
+    active++;
+    maxActive = Math.max(maxActive, active);
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    active--;
+  };
+  controller.enterSelectionMode();
+  controller.toggleRow(rows[0]);
+  controller.toggleRow(rows[1]);
+  await controller.runAction('delete');
+  assert.equal(maxActive, 1);
+});
+
 test('Claude/Grok-style adapters omit archive control', () => {
   const { controller, controls } = harness({ supportsArchive: false });
   controller.reconcile();

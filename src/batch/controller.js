@@ -6,7 +6,7 @@
   const defaultRegistry = typeof module !== 'undefined' && module.exports ? require('../providers/registry.js') : namespace.providerRegistry;
 
   class BatchController {
-    constructor({ win = globalThis.window, doc = globalThis.document, registry = defaultRegistry, domApi = defaultDom, confirm = null, fetch = null, logger = console } = {}) {
+    constructor({ win = globalThis.window, doc = globalThis.document, registry = defaultRegistry, domApi = defaultDom, confirm = null, fetch = null, logger = console, concurrency = 0 } = {}) {
       this.win = win;
       this.doc = doc;
       this.registry = registry;
@@ -14,6 +14,7 @@
       this.confirm = confirm || ((options) => this.dom.confirmAction?.(this.doc, options) ?? Promise.resolve(false));
       this.fetch = fetch || ((...args) => this.win.fetch(...args));
       this.logger = logger;
+      this.concurrency = concurrency;
       this.provider = null;
       this.adapter = null;
       this.section = null;
@@ -68,7 +69,7 @@
     toggleRow(row) { if (!row || this.busy || !this.selectionMode) return false; const id = this.adapter?.getConversationId?.(row); if (!id) return false; const selected = core.toggleSelection(this.selection, id); this.dom.setRowSelected?.(row, selected); this.renderHeaderControls(); return selected; }
     onSectionClick(event) { if (!this.selectionMode || this.busy) return; const selectAttr = this.dom?.SELECT_ATTR || 'data-ai-chatweb-batch-select'; if (event?.target?.closest?.(`[${selectAttr}]`)) return; let row = event?.target?.closest?.('[data-ai-chatweb-batch-row]') || null; if (!row) row = (this.adapter?.listConversationRows?.(this.section) || []).find((candidate) => candidate === event?.target || candidate?.contains?.(event?.target)) || null; if (!row) return; event.preventDefault?.(); event.stopPropagation?.(); event.stopImmediatePropagation?.(); this.toggleRow(row); }
     findRowById(id) { return (this.adapter?.listConversationRows?.(this.section) || []).find((row) => this.adapter.getConversationId?.(row) === id) || null; }
-    async runAction(action) {
+    async runAction(action, options = {}) {
       const ids = [...this.selection]; if (!ids.length || this.busy || !this.adapter) return null;
       const operation = action === 'archive' ? this.adapter.archiveConversation : this.adapter.deleteConversation; if (typeof operation !== 'function') return null;
       this.busy = true; this.renderHeaderControls();
@@ -77,7 +78,9 @@
       catch (error) { this.logger?.warn?.('[AI Chat Web Supporter] batch confirmation failed', { provider: this.provider?.id, action }); }
       if (!confirmed) { this.busy = false; this.renderHeaderControls(); return null; }
       const context = { window: this.win, document: this.doc, fetch: this.fetch };
-      const result = await core.runSequential(ids, (id) => operation(id, context));
+      const concurrency = options?.concurrency ?? this.concurrency ?? 0;
+      const runner = core.runParallel || core.runSequential;
+      const result = await runner(ids, (id) => operation(id, context), { concurrency });
       for (const id of result.succeeded) { this.selection.delete(id); const row = this.findRowById(id); if (row) this.dom.removeRow?.(row); }
       this.busy = false;
       this.dom.showToast?.(this.doc, {

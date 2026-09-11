@@ -29,13 +29,18 @@
   function cookieValue(doc,name){const text=String(doc?.cookie||'');for(const part of text.split(';')){const [key,...rest]=part.trim().split('=');if(key===name){try{return decodeURIComponent(rest.join('='));}catch{return rest.join('=');}}}return null;}
   async function resolveOrganizationId(context={}){
     if(context.organizationId)return String(context.organizationId);
-    if(typeof context.resolveOrganizationId==='function'){const resolved=await context.resolveOrganizationId(context);if(resolved)return String(resolved);}
-    const doc=context.document||globalThis.document;
-    const fromCookie=cookieValue(doc,'lastActiveOrg');if(fromCookie)return fromCookie;
-    const win=context.window||globalThis.window;
-    const fromStorage=win?.localStorage?.getItem?.('lastActiveOrg');if(fromStorage)return fromStorage;
-    const node=doc?.querySelector?.('[data-organization-id],[data-org-id]');const fromDom=node?.getAttribute?.('data-organization-id')||node?.getAttribute?.('data-org-id');if(fromDom)return fromDom;
-    throw new Error('Claude active organization could not be resolved');
+    if(!context.__claudeOrgPromise){
+      context.__claudeOrgPromise=(async()=>{
+        if(typeof context.resolveOrganizationId==='function'){const resolved=await context.resolveOrganizationId(context);if(resolved)return String(resolved);}
+        const doc=context.document||globalThis.document;
+        const fromCookie=cookieValue(doc,'lastActiveOrg');if(fromCookie)return fromCookie;
+        const win=context.window||globalThis.window;
+        const fromStorage=win?.localStorage?.getItem?.('lastActiveOrg');if(fromStorage)return fromStorage;
+        const node=doc?.querySelector?.('[data-organization-id],[data-org-id]');const fromDom=node?.getAttribute?.('data-organization-id')||node?.getAttribute?.('data-org-id');if(fromDom)return fromDom;
+        throw new Error('Claude active organization could not be resolved');
+      })();
+    }
+    return context.__claudeOrgPromise;
   }
   function ensureBatchResponse(response,id){if(!response?.ok){const status=response?.status??'unknown';throw new Error(`Claude delete failed for ${id}: ${status}`);}return true;}
   async function deleteConversation(id,context={}){const fetchFn=context.fetch||globalThis.fetch;const organizationId=await resolveOrganizationId(context);const response=await fetchFn(`/api/organizations/${encodeURIComponent(organizationId)}/chat_conversations/${encodeURIComponent(id)}`,{method:'DELETE',credentials:'include',headers:{'content-type':'application/json'},body:JSON.stringify({uuid:id})});return ensureBatchResponse(response,id);}

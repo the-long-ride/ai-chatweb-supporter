@@ -78,6 +78,42 @@ test('Claude batch extracts data-row-key ids and resolves organization from curr
   assert.equal(calls[0].options.body, JSON.stringify({ uuid: 'claude-123' }));
 });
 
+test('parallel provider deletions share cached auth and organization resolution', async () => {
+  let sessionCalls = 0;
+  const chatgptContext = {
+    document: { cookie: '_account=acc-1' },
+    fetch: async (url) => {
+      if (url === '/api/auth/session') {
+        sessionCalls++;
+        await new Promise((r) => setTimeout(r, 10));
+        return response({ json: { accessToken: 'tok' } });
+      }
+      return response();
+    },
+  };
+  await Promise.all([
+    chatgpt.batch.deleteConversation('c1', chatgptContext),
+    chatgpt.batch.deleteConversation('c2', chatgptContext),
+    chatgpt.batch.deleteConversation('c3', chatgptContext),
+  ]);
+  assert.equal(sessionCalls, 1);
+
+  let orgResolves = 0;
+  const claudeContext = {
+    resolveOrganizationId: async () => {
+      orgResolves++;
+      await new Promise((r) => setTimeout(r, 10));
+      return 'org-cached';
+    },
+    fetch: async () => response(),
+  };
+  await Promise.all([
+    claude.batch.deleteConversation('cl1', claudeContext),
+    claude.batch.deleteConversation('cl2', claudeContext),
+  ]);
+  assert.equal(orgResolves, 1);
+});
+
 test('Grok batch extracts ids and calls soft-delete endpoint', async () => {
   const row = { querySelector() { return anchor('/c/grok-123?rid=1'); } };
   assert.equal(grok.batch.getConversationId(row), 'grok-123');

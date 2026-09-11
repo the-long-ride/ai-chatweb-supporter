@@ -43,6 +43,45 @@
     return { succeeded, failed };
   }
 
+  async function runParallel(ids, operation, { concurrency = 0 } = {}) {
+    const list = Array.from(ids || []);
+    if (!list.length) return { succeeded: [], failed: [] };
+
+    const limit = typeof concurrency === 'number' && concurrency > 0
+      ? Math.min(concurrency, list.length)
+      : list.length;
+
+    const results = new Array(list.length);
+    let nextIndex = 0;
+
+    async function worker() {
+      while (nextIndex < list.length) {
+        const index = nextIndex++;
+        const id = list[index];
+        try {
+          await operation(id);
+          results[index] = { ok: true, id };
+        } catch (error) {
+          results[index] = { ok: false, id, error };
+        }
+      }
+    }
+
+    const workers = Array.from({ length: limit }, () => worker());
+    await Promise.all(workers);
+
+    const succeeded = [];
+    const failed = [];
+    for (const res of results) {
+      if (res.ok) {
+        succeeded.push(res.id);
+      } else {
+        failed.push({ id: res.id, error: res.error });
+      }
+    }
+    return { succeeded, failed };
+  }
+
   const api = {
     createSelection,
     toggleSelection,
@@ -50,6 +89,7 @@
     confirmationMessage,
     actionEnabled,
     runSequential,
+    runParallel,
   };
 
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

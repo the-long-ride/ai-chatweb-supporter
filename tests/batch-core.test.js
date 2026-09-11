@@ -35,3 +35,38 @@ test('sequential runner preserves order and continues after failures', async () 
   assert.deepEqual(result.succeeded, ['a', 'c']);
   assert.deepEqual(result.failed.map((entry) => entry.id), ['b']);
 });
+
+test('parallel runner executes operations concurrently and continues after failures', async () => {
+  let active = 0;
+  let maxActive = 0;
+  const calls = [];
+  const result = await core.runParallel(['a', 'b', 'c'], async (id) => {
+    calls.push(id);
+    active++;
+    maxActive = Math.max(maxActive, active);
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    active--;
+    if (id === 'b') throw new Error('boom');
+  });
+  assert.equal(maxActive, 3);
+  assert.deepEqual(result.succeeded, ['a', 'c']);
+  assert.deepEqual(result.failed.map((entry) => entry.id), ['b']);
+});
+
+test('parallel runner respects concurrency limit when provided', async () => {
+  let active = 0;
+  let maxActive = 0;
+  const result = await core.runParallel(['a', 'b', 'c', 'd'], async (id) => {
+    active++;
+    maxActive = Math.max(maxActive, active);
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    active--;
+  }, { concurrency: 2 });
+  assert.equal(maxActive, 2);
+  assert.deepEqual(result.succeeded, ['a', 'b', 'c', 'd']);
+});
+
+test('parallel runner handles empty and missing inputs', async () => {
+  assert.deepEqual(await core.runParallel(), { succeeded: [], failed: [] });
+  assert.deepEqual(await core.runParallel([]), { succeeded: [], failed: [] });
+});
