@@ -2,6 +2,7 @@
   'use strict';
 
   const CONTINUATION_TEXT = 'continue remaining works';
+  const TEXT_TRIGGER_PROVIDER_IDS = new Set(['chatgpt', 'grok']);
   const RESPONSE_SELECTORS = Object.freeze({
     chatgpt: [
       '[data-message-author-role="assistant"] .markdown',
@@ -119,7 +120,7 @@
     function setChatgptErrorEnabled(value) { chatgptErrorEnabled = value !== false; }
 
     function scanTextTrigger() {
-      if (!provider || !textEnabled || !normalizedText(matchText)) return false;
+      if (!provider || !TEXT_TRIGGER_PROVIDER_IDS.has(provider.id) || !textEnabled || !normalizedText(matchText)) return false;
       const composer = provider.findComposer?.(doc, win);
       if (!composer || provider.findStopButton?.(composer, doc, win)) return false;
       const message = findLatestAssistantMessage(provider.id, doc);
@@ -239,7 +240,7 @@
     };
   }
 
-  const api = { CONTINUATION_TEXT, RESPONSE_SELECTORS, normalizedText, responseMatches, listAssistantMessages, findLatestAssistantMessage, messageIdentity, isButtonReady, createController };
+  const api = { CONTINUATION_TEXT, TEXT_TRIGGER_PROVIDER_IDS, RESPONSE_SELECTORS, normalizedText, responseMatches, listAssistantMessages, findLatestAssistantMessage, messageIdentity, isButtonReady, createController };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 
   if (typeof globalThis !== 'undefined') {

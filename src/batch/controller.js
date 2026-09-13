@@ -71,16 +71,29 @@
     findRowById(id) { return (this.adapter?.listConversationRows?.(this.section) || []).find((row) => this.adapter.getConversationId?.(row) === id) || null; }
     async runAction(action, options = {}) {
       const ids = [...this.selection]; if (!ids.length || this.busy || !this.adapter) return null;
-      const operation = action === 'archive' ? this.adapter.archiveConversation : this.adapter.deleteConversation; if (typeof operation !== 'function') return null;
+      const operation = action === 'archive' ? this.adapter.archiveConversation : this.adapter.deleteConversation;
+      const batchOperation = this.adapter.runBatchAction;
+      if (typeof operation !== 'function' && typeof batchOperation !== 'function') return null;
       this.busy = true; this.renderHeaderControls();
       let confirmed = false;
       try { confirmed = await Promise.resolve(this.confirm({ action, count: ids.length, providerId: this.provider?.id || 'unknown', message: core.confirmationMessage(action, ids.length) })); }
       catch (error) { this.logger?.warn?.('[AI Chat Web Supporter] batch confirmation failed', { provider: this.provider?.id, action }); }
       if (!confirmed) { this.busy = false; this.renderHeaderControls(); return null; }
-      const context = { window: this.win, document: this.doc, fetch: this.fetch };
-      const concurrency = options?.concurrency ?? this.concurrency ?? 0;
-      const runner = core.runParallel || core.runSequential;
-      const result = await runner(ids, (id) => operation(id, context), { concurrency });
+      const context = { window: this.win, document: this.doc, fetch: this.fetch, runtime: this.win?.chrome?.runtime || globalThis.chrome?.runtime || null };
+      let result;
+      try {
+        if (typeof batchOperation === 'function') {
+          result = await batchOperation.call(this.adapter, action, ids, context);
+        } else {
+          const concurrency = options?.concurrency ?? this.concurrency ?? 0;
+          const runner = core.runParallel || core.runSequential;
+          result = await runner(ids, (id) => operation(id, context), { concurrency });
+        }
+        if (!Array.isArray(result?.succeeded) || !Array.isArray(result?.failed)) throw new Error('Invalid batch action result');
+      } catch (error) {
+        result = { succeeded: [], failed: ids.map((id) => ({ id, error })) };
+        this.logger?.warn?.('[AI Chat Web Supporter] batch conversation action failed', { provider: this.provider?.id, action, failed: ids.length, error });
+      }
       for (const id of result.succeeded) { this.selection.delete(id); const row = this.findRowById(id); if (row) this.dom.removeRow?.(row); }
       this.busy = false;
       this.dom.showToast?.(this.doc, {
