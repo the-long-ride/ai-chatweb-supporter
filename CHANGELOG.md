@@ -4,6 +4,17 @@ All notable changes to AI Chat Web Supporter are documented here by released ver
 
 ## Unreleased
 
+## [1.1.7] - 2026-09-14
+
+### Changed
+- Response-text auto-continue settings now explicitly target ChatGPT and Grok, while Claude is excluded from this trigger and ChatGPT stream-error recovery remains ChatGPT-only.
+- ChatGPT batch archive/delete actions now dispatch selected conversation mutations through the service worker in parallel.
+
+### Fixed
+- ChatGPT batch mutations preserve the active session/account context and cookies when dispatched from the service worker.
+- Batch archive/delete now requires the ChatGPT backend response to confirm `success: true`, preventing conversations from appearing removed only until the page reloads.
+- Failed ChatGPT batch mutations remain selected and are reported per conversation without cancelling successful sibling requests.
+
 ## [1.1.6] - 2026-09-08
 
 ### Added
