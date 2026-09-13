@@ -46,8 +46,8 @@ test('scan sends the fixed continuation once for one matching response', () => {
   assert.equal(provider.send.clicks, 1);
 });
 
-test('a later matching response can trigger again', () => {
-  const provider = makeProvider('claude');
+test('a later matching Grok response can trigger again', () => {
+  const provider = makeProvider('grok');
   const first = node('Incompleted');
   const doc = docWith([first]);
   const controller = autoContinue.createController({ provider, doc, win, textEnabled:true, matchText:'Incompleted' });
@@ -56,6 +56,19 @@ test('a later matching response can trigger again', () => {
   doc.querySelectorAll = () => [first, second];
   controller.scan();
   assert.equal(provider.send.clicks, 2);
+});
+
+test('response-text continuation is limited to ChatGPT and Grok', () => {
+  for (const id of ['chatgpt', 'grok']) {
+    const provider = makeProvider(id);
+    const controller = autoContinue.createController({ provider, doc:docWith([node('Incompleted')]), win, textEnabled:true, matchText:'Incompleted' });
+    assert.equal(controller.scan(), true, `${id} should continue`);
+    assert.equal(provider.send.clicks, 1);
+  }
+  const claude = makeProvider('claude');
+  const controller = autoContinue.createController({ provider:claude, doc:docWith([node('Incompleted')]), win, textEnabled:true, matchText:'Incompleted' });
+  assert.equal(controller.scan(), false);
+  assert.equal(claude.send.clicks, 0);
 });
 
 test('disabled, empty config, busy generation, and user draft do not send', () => {
