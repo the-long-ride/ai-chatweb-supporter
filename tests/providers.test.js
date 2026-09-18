@@ -194,3 +194,26 @@ test('Grok adapter detects attachments and all providers expose theme context', 
     });
   }
 });
+
+
+test('ChatGPT adapter resolves the current composer submit id and generic Send aria label', () => {
+  const sendById = visibleElement({ disabled:false });
+  const sendByAria = visibleElement({ disabled:false });
+  const scope = {
+    parentElement:{},
+    querySelectorAll(selector) {
+      if (selector === '#composer-submit-button') return [sendById];
+      if (selector === 'button[aria-label*="Send" i]') return [sendByAria];
+      return [];
+    },
+    querySelector(){ return null; },
+  };
+  const composer = visibleElement({
+    parentElement:{},
+    closest(selector){ return selector === 'form' ? scope : null; },
+  });
+  assert.equal(chatgpt.findSendButton(composer, {}, win), sendById);
+
+  scope.querySelectorAll = (selector) => selector === 'button[aria-label*="Send" i]' ? [sendByAria] : [];
+  assert.equal(chatgpt.findSendButton(composer, {}, win), sendByAria);
+});

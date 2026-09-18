@@ -158,7 +158,8 @@
     return new Promise((resolve) => {
       const started = Date.now();
       const check = () => {
-        const button = provider.findSendButton(composer, document, window);
+        const currentComposer = provider.findComposer(document, window) || composer;
+        const button = provider.findSendButton(currentComposer, document, window);
         if (dom.isButtonReady(button, window)) return resolve(button);
         if (Date.now() - started >= timeoutMs) return resolve(null);
         window.setTimeout(check, 40);
@@ -197,9 +198,10 @@
   }
 
   function clearPreparedMessage(provider, composer, item, restoredFiles) {
-    const current = provider.getComposerText(composer).trim();
-    if (current === String(item.text || '').trim()) provider.setComposerText(composer, '');
-    if (restoredFiles.length) provider.clearAttachments?.(composer, document, window);
+    const currentComposer = provider.findComposer(document, window) || composer;
+    const current = provider.getComposerText(currentComposer);
+    if (dom.composerTextMatchesQueued(current, item.text)) provider.setComposerText(currentComposer, '');
+    if (restoredFiles.length) provider.clearAttachments?.(currentComposer, document, window);
   }
 
   async function persistDispatchQueue(storageKey, paused) {
@@ -240,7 +242,8 @@
 
       provider.setComposerText(composer, item.text);
       const sendButton = await waitForSendReady(composer, provider, metadata.length ? ATTACHMENT_SEND_READY_TIMEOUT_MS : 1600);
-      if (!sendButton || provider.getComposerText(composer).trim() !== item.text) { clearPreparedMessage(provider, composer, item, restoredFiles); return false; }
+      const sendComposer = provider.findComposer(document, window) || composer;
+      if (!sendButton || !dom.composerTextMatchesQueued(provider.getComposerText(sendComposer), item.text)) { clearPreparedMessage(provider, sendComposer, item, restoredFiles); return false; }
       const latestProvider = currentProvider();
       if (!queueEnabled || !latestProvider || latestProvider.id !== dispatchProviderId || !state.isCurrentScope(dispatchScope) || (!steer && state.paused)) { clearPreparedMessage(provider, composer, item, restoredFiles); return false; }
 
@@ -253,16 +256,16 @@
       view.render();
 
       const acceptBusy = !(steer && busyBefore);
-      const submittedByForm = dom.requestComposerSubmit?.(composer, sendButton) === true;
+      const submittedByForm = dom.requestComposerSubmit?.(sendComposer, sendButton) === true;
       if (!submittedByForm) sendButton.click();
-      sent = await waitForSendAcceptance(composer, item.text, provider, {
+      sent = await waitForSendAcceptance(sendComposer, item.text, provider, {
         timeoutMs: submittedByForm ? FORM_SUBMIT_ACCEPTANCE_TIMEOUT_MS : 5000,
         acceptBusy,
       });
       if (!sent && submittedByForm) {
         const currentComposer = provider.findComposer(document, window) || composer;
         const fallbackButton = provider.findSendButton(currentComposer, document, window);
-        const queuedStillPresent = provider.getComposerText(currentComposer).trim() === String(item.text || '').trim();
+        const queuedStillPresent = dom.composerTextMatchesQueued(provider.getComposerText(currentComposer), item.text);
         if (queuedStillPresent && dom.isButtonReady(fallbackButton, window)) {
           fallbackButton.click();
           sent = await waitForSendAcceptance(currentComposer, item.text, provider, { acceptBusy });

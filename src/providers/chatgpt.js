@@ -2,7 +2,7 @@
   'use strict';
   const dom = typeof module !== 'undefined' && module.exports ? require('../queue/dom.js') : globalThis.AiChatWebSupporter.queueDom;
   const COMPOSER_SELECTORS = ['#prompt-textarea','textarea[data-testid="prompt-textarea"]','div[contenteditable="true"][data-virtualkeyboard="true"]','form div[contenteditable="true"]'];
-  const SEND_SELECTORS = ['button[data-testid="send-button"]','button[aria-label="Send prompt"]','button[type="submit"]'];
+  const SEND_SELECTORS = ['#composer-submit-button','button[data-testid="send-button"]','button[aria-label="Send prompt"]','button[aria-label*="Send" i]','button[type="submit"]'];
   const STOP_SELECTORS = ['button[data-testid="stop-button"]','button[aria-label*="Stop generating" i]','button[aria-label*="Stop streaming" i]'];
   const ATTACHMENT_SELECTOR = ['[data-testid*="attachment" i]','[data-testid*="file-preview" i]','[data-testid*="file-thumbnail" i]','button[aria-label*="Remove attachment" i]','button[aria-label*="Remove file" i]','button[aria-label*="Remove image" i]'].join(',');
   const REMOVE_ATTACHMENT_SELECTOR = ['button[aria-label*="Remove attachment" i]','button[aria-label*="Remove file" i]','button[aria-label*="Remove image" i]'].join(',');
