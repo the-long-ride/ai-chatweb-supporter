@@ -30,6 +30,7 @@
   const { queueShortcut: SHORTCUT_KEY, queueEnabled: QUEUE_ENABLED_KEY } = constants.STORAGE_KEYS;
   const RECONCILE_INTERVAL_MS = 800;
   const ATTACHMENT_SEND_READY_TIMEOUT_MS = 30000;
+  const FORM_SUBMIT_ACCEPTANCE_TIMEOUT_MS = 750;
 
   const gate = new DispatchGate();
   const state = new ActiveQueueState();
@@ -251,8 +252,22 @@
       if (!dispatchRecord) { clearPreparedMessage(provider, composer, item, restoredFiles); return false; }
       view.render();
 
-      sendButton.click();
-      sent = await waitForSendAcceptance(composer, item.text, provider, { acceptBusy: !(steer && busyBefore) });
+      const acceptBusy = !(steer && busyBefore);
+      const submittedByForm = dom.requestComposerSubmit?.(composer, sendButton) === true;
+      if (!submittedByForm) sendButton.click();
+      sent = await waitForSendAcceptance(composer, item.text, provider, {
+        timeoutMs: submittedByForm ? FORM_SUBMIT_ACCEPTANCE_TIMEOUT_MS : 5000,
+        acceptBusy,
+      });
+      if (!sent && submittedByForm) {
+        const currentComposer = provider.findComposer(document, window) || composer;
+        const fallbackButton = provider.findSendButton(currentComposer, document, window);
+        const queuedStillPresent = provider.getComposerText(currentComposer).trim() === String(item.text || '').trim();
+        if (queuedStillPresent && dom.isButtonReady(fallbackButton, window)) {
+          fallbackButton.click();
+          sent = await waitForSendAcceptance(currentComposer, item.text, provider, { acceptBusy });
+        }
+      }
       if (!sent) {
         clearPreparedMessage(provider, composer, item, restoredFiles);
         await restoreQueuedItemAfterFailedSend({
