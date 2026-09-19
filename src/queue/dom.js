@@ -23,6 +23,11 @@
     if(current===queued)return true;
     return current.replace(/\n+/g,'\n')===queued.replace(/\n+/g,'\n');
   }
+  function classifyPreparedSendState({active=true,composerMatches=true,sendReady=false}={}){
+    if(!active)return'interrupted';
+    if(sendReady&&composerMatches)return'ready';
+    return'waiting';
+  }
   function requestComposerSubmit(composer,sendButton){
     const form=sendButton?.form||composer?.closest?.('form');
     if(!form?.requestSubmit)return false;
@@ -65,6 +70,6 @@
   }
 
   function setComposerText(composer,text){if(!composer)return false;const next=String(text??'');const tagName=String(composer.tagName||'').toUpperCase();if(tagName==='TEXTAREA'||tagName==='INPUT'){const proto=Object.getPrototypeOf(composer);const descriptor=proto&&Object.getOwnPropertyDescriptor(proto,'value');if(descriptor?.set)descriptor.set.call(composer,next);else composer.value=next;}else{const doc=composer.ownerDocument;const view=doc?.defaultView||globalThis.window;let inserted=false;if(doc?.execCommand&&view?.getSelection&&composer.focus){try{composer.focus();const selection=view.getSelection();const range=doc.createRange();range.selectNodeContents(composer);selection.removeAllRanges();selection.addRange(range);inserted=doc.execCommand('insertText',false,next);}catch{inserted=false;}}if(inserted)return true;composer.textContent=next;}const view=composer.ownerDocument?.defaultView||globalThis.window;let event;try{const InputEventCtor=view?.InputEvent||view?.Event;event=new InputEventCtor('input',{bubbles:true,inputType:next?'insertText':'deleteContentBackward',data:next||null});}catch{event=new(view?.Event||Event)('input',{bubbles:true});}composer.dispatchEvent?.(event);return true;}
-  const api={getComposerText,setComposerText,isElementVisible,isButtonReady,firstVisible,themeContext,classifySendAttempt,canPrepareQueuedSend,normalizeComparableText,composerTextMatchesQueued,requestComposerSubmit,fileInputs,selectedFiles,findFileInput,assignFilesToInput,clearFileInputs};
+  const api={getComposerText,setComposerText,isElementVisible,isButtonReady,firstVisible,themeContext,classifySendAttempt,canPrepareQueuedSend,normalizeComparableText,composerTextMatchesQueued,classifyPreparedSendState,requestComposerSubmit,fileInputs,selectedFiles,findFileInput,assignFilesToInput,clearFileInputs};
   if(typeof module!=='undefined'&&module.exports)module.exports=api;if(typeof globalThis!=='undefined')(globalThis.AiChatWebSupporter||={}).queueDom=api;
 })();

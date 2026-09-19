@@ -29,7 +29,8 @@
 
   const { queueShortcut: SHORTCUT_KEY, queueEnabled: QUEUE_ENABLED_KEY } = constants.STORAGE_KEYS;
   const RECONCILE_INTERVAL_MS = 800;
-  const ATTACHMENT_SEND_READY_TIMEOUT_MS = 30000;
+  const SEND_READY_POLL_MS = 80;
+  const PREPARED_TEXT_MISMATCH_GRACE_MS = 1000;
   const FORM_SUBMIT_ACCEPTANCE_TIMEOUT_MS = 750;
 
   const gate = new DispatchGate();
@@ -154,15 +155,39 @@
     if (result === 'queued') { attachmentCapture.clear(); view.render(composer); scheduleReconcile(); }
   }
 
-  function waitForSendReady(composer, provider, timeoutMs = 1600) {
+  function waitForSendReady(composer, provider, item, { steer = false } = {}) {
     return new Promise((resolve) => {
-      const started = Date.now();
+      let mismatchSince = 0;
       const check = () => {
+        const latestProvider = currentProvider();
+        const active = Boolean(
+          queueEnabled &&
+          latestProvider?.id === provider.id &&
+          state.isCurrentScope(scope.resolveScope(provider, globalThis.location?.href || '', tabId)) &&
+          (steer || !state.paused) &&
+          state.queue.some((entry) => entry.id === item.id)
+        );
         const currentComposer = provider.findComposer(document, window) || composer;
         const button = provider.findSendButton(currentComposer, document, window);
-        if (dom.isButtonReady(button, window)) return resolve(button);
-        if (Date.now() - started >= timeoutMs) return resolve(null);
-        window.setTimeout(check, 40);
+        const composerMatches = dom.composerTextMatchesQueued(provider.getComposerText(currentComposer), item.text);
+        const sendState = dom.classifyPreparedSendState({
+          active,
+          composerMatches,
+          sendReady:dom.isButtonReady(button, window),
+        });
+
+        if (sendState === 'ready') return resolve({ status:'ready', button, composer:currentComposer });
+        if (sendState === 'interrupted') return resolve({ status:'interrupted', button:null, composer:currentComposer });
+
+        if (!composerMatches) {
+          if (!mismatchSince) mismatchSince = Date.now();
+          if (Date.now() - mismatchSince >= PREPARED_TEXT_MISMATCH_GRACE_MS) {
+            return resolve({ status:'interrupted', button:null, composer:currentComposer });
+          }
+        } else {
+          mismatchSince = 0;
+        }
+        window.setTimeout(check, SEND_READY_POLL_MS);
       };
       check();
     });
@@ -241,9 +266,13 @@
       }
 
       provider.setComposerText(composer, item.text);
-      const sendButton = await waitForSendReady(composer, provider, metadata.length ? ATTACHMENT_SEND_READY_TIMEOUT_MS : 1600);
-      const sendComposer = provider.findComposer(document, window) || composer;
-      if (!sendButton || !dom.composerTextMatchesQueued(provider.getComposerText(sendComposer), item.text)) { clearPreparedMessage(provider, sendComposer, item, restoredFiles); return false; }
+      const readiness = await waitForSendReady(composer, provider, item, { steer });
+      const sendComposer = readiness.composer || provider.findComposer(document, window) || composer;
+      const sendButton = readiness.button;
+      if (readiness.status !== 'ready' || !sendButton || !dom.composerTextMatchesQueued(provider.getComposerText(sendComposer), item.text)) {
+        clearPreparedMessage(provider, sendComposer, item, restoredFiles);
+        return false;
+      }
       const latestProvider = currentProvider();
       if (!queueEnabled || !latestProvider || latestProvider.id !== dispatchProviderId || !state.isCurrentScope(dispatchScope) || (!steer && state.paused)) { clearPreparedMessage(provider, composer, item, restoredFiles); return false; }
 
