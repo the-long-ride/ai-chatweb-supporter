@@ -29,7 +29,9 @@
 
   const { queueShortcut: SHORTCUT_KEY, queueEnabled: QUEUE_ENABLED_KEY } = constants.STORAGE_KEYS;
   const RECONCILE_INTERVAL_MS = 800;
-  const ATTACHMENT_SEND_READY_TIMEOUT_MS = 30000;
+  const PREPARED_SEND_DELAY_MS = 1000;
+  const PROCESSING_START_TIMEOUT_MS = 30000;
+  const PROCESSING_POLL_MS = 80;
 
   const gate = new DispatchGate();
   const state = new ActiveQueueState();
@@ -153,52 +155,32 @@
     if (result === 'queued') { attachmentCapture.clear(); view.render(composer); scheduleReconcile(); }
   }
 
-  function waitForSendReady(composer, provider, timeoutMs = 1600) {
-    return new Promise((resolve) => {
-      const started = Date.now();
-      const check = () => {
-        const button = provider.findSendButton(composer, document, window);
-        if (dom.isButtonReady(button, window)) return resolve(button);
-        if (Date.now() - started >= timeoutMs) return resolve(null);
-        window.setTimeout(check, 40);
-      };
-      check();
-    });
+  function delay(ms) {
+    return new Promise((resolve) => window.setTimeout(resolve, ms));
   }
 
-  function waitForAttachmentEvidence(composer, provider, timeoutMs = 5000) {
-    return new Promise((resolve) => {
-      const started = Date.now();
-      const check = () => {
-        const currentComposer = provider.findComposer(document, window) || composer;
-        if (provider.hasAttachments(currentComposer)) return resolve(true);
-        if (Date.now() - started >= timeoutMs) return resolve(false);
-        window.setTimeout(check, 40);
-      };
-      check();
-    });
-  }
-
-  function waitForSendAcceptance(composer, queuedText, provider, { timeoutMs = 5000, acceptBusy = true } = {}) {
+  function waitForProcessingStart(composer, queuedText, provider, { timeoutMs = PROCESSING_START_TIMEOUT_MS, busyBefore = false } = {}) {
     return new Promise((resolve) => {
       const started = Date.now();
       const check = () => {
         const currentComposer = provider.findComposer(document, window) || composer;
         const busy = Boolean(provider.findStopButton(currentComposer, document, window));
         gate.observeBusy(busy);
-        const attemptState = dom.classifySendAttempt({ busy, composerText:provider.getComposerText(currentComposer), queuedText, sendReady:dom.isButtonReady(provider.findSendButton(currentComposer, document, window), window), acceptBusy });
-        if (attemptState !== 'pending') return resolve(attemptState === 'accepted');
+
+        if (!busyBefore && busy) return resolve(true);
+        if (busyBefore && !dom.composerTextMatchesQueued(provider.getComposerText(currentComposer), queuedText)) return resolve(true);
         if (Date.now() - started >= timeoutMs) return resolve(false);
-        window.setTimeout(check, 40);
+        window.setTimeout(check, PROCESSING_POLL_MS);
       };
       check();
     });
   }
 
   function clearPreparedMessage(provider, composer, item, restoredFiles) {
-    const current = provider.getComposerText(composer).trim();
-    if (current === String(item.text || '').trim()) provider.setComposerText(composer, '');
-    if (restoredFiles.length) provider.clearAttachments?.(composer, document, window);
+    const currentComposer = provider.findComposer(document, window) || composer;
+    const current = provider.getComposerText(currentComposer);
+    if (dom.composerTextMatchesQueued(current, item.text)) provider.setComposerText(currentComposer, '');
+    if (restoredFiles.length) provider.clearAttachments?.(currentComposer, document, window);
   }
 
   async function persistDispatchQueue(storageKey, paused) {
@@ -234,25 +216,35 @@
         replayingAttachments = true;
         try { restoredFiles = await restoreQueuedAttachments({ item, provider, composer, attachmentApi:attachmentApiDefault, doc:document, win:window }); }
         finally { replayingAttachments = false; }
-        if (!await waitForAttachmentEvidence(composer, provider)) { clearPreparedMessage(provider, composer, item, restoredFiles); return false; }
       }
 
       provider.setComposerText(composer, item.text);
-      const sendButton = await waitForSendReady(composer, provider, metadata.length ? ATTACHMENT_SEND_READY_TIMEOUT_MS : 1600);
-      if (!sendButton || provider.getComposerText(composer).trim() !== item.text) { clearPreparedMessage(provider, composer, item, restoredFiles); return false; }
+      await delay(PREPARED_SEND_DELAY_MS);
+
+      const sendComposer = provider.findComposer(document, window) || composer;
       const latestProvider = currentProvider();
-      if (!queueEnabled || !latestProvider || latestProvider.id !== dispatchProviderId || !state.isCurrentScope(dispatchScope) || (!steer && state.paused)) { clearPreparedMessage(provider, composer, item, restoredFiles); return false; }
+      if (
+        !queueEnabled ||
+        !latestProvider ||
+        latestProvider.id !== dispatchProviderId ||
+        !state.isCurrentScope(dispatchScope) ||
+        (!steer && state.paused) ||
+        !dom.composerTextMatchesQueued(provider.getComposerText(sendComposer), item.text)
+      ) {
+        clearPreparedMessage(provider, sendComposer, item, restoredFiles);
+        return false;
+      }
 
       dispatchRecord = await stageQueuedItemForDispatch({
         state,
         itemId:item.id,
         persist:() => persistDispatchQueue(dispatchStorageKey, dispatchPaused),
       });
-      if (!dispatchRecord) { clearPreparedMessage(provider, composer, item, restoredFiles); return false; }
+      if (!dispatchRecord) { clearPreparedMessage(provider, sendComposer, item, restoredFiles); return false; }
       view.render();
 
-      sendButton.click();
-      sent = await waitForSendAcceptance(composer, item.text, provider, { acceptBusy: !(steer && busyBefore) });
+      dom.dispatchEnterKey(sendComposer, window);
+      sent = await waitForProcessingStart(sendComposer, item.text, provider, { busyBefore });
       if (!sent) {
         clearPreparedMessage(provider, composer, item, restoredFiles);
         await restoreQueuedItemAfterFailedSend({
