@@ -94,3 +94,19 @@ test('supports Error in message stream fallback without Retry testid', () => {
   assert.equal(chatgpt.maybeFillStreamErrorContinuation(env.input, env.doc, env.win), true);
   assert.equal(env.clicks(), 1);
 });
+
+test('fills continuation and clicks Send in hidden background tab with zero rects', () => {
+  const env = environment();
+  env.doc.visibilityState = 'hidden';
+  env.win.document = env.doc;
+  env.input.ownerDocument = env.doc;
+  env.input.getBoundingClientRect = () => ({ width: 0, height: 0 });
+  env.send.ownerDocument = env.doc;
+  env.send.getBoundingClientRect = () => ({ width: 0, height: 0 });
+  env.box.ownerDocument = env.doc;
+  env.box.getBoundingClientRect = () => ({ width: 0, height: 0 });
+
+  assert.equal(chatgpt.maybeFillStreamErrorContinuation(env.input, env.doc, env.win), true);
+  assert.equal(env.clicks(), 1);
+});
+

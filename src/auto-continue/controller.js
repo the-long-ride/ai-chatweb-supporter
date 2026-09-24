@@ -73,10 +73,14 @@
   }
 
   function isButtonReady(button, win = globalThis.window) {
-    if (!button || button.disabled || button.isConnected === false || !button.getBoundingClientRect) return false;
+    if (!button || button.disabled || button.isConnected === false) return false;
     if (button.getAttribute?.('aria-disabled') === 'true') return false;
-    const rect = button.getBoundingClientRect();
-    if (rect.width <= 0 || rect.height <= 0) return false;
+    const doc = button.ownerDocument || win?.document || globalThis.document;
+    const isHiddenTab = doc?.visibilityState === 'hidden';
+    if (button.getBoundingClientRect) {
+      const rect = button.getBoundingClientRect();
+      if (!isHiddenTab && (rect.width <= 0 || rect.height <= 0)) return false;
+    }
     const style = win?.getComputedStyle ? win.getComputedStyle(button) : null;
     return !style || (style.display !== 'none' && style.visibility !== 'hidden' && style.pointerEvents !== 'none');
   }

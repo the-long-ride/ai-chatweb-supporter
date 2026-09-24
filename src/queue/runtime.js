@@ -242,8 +242,12 @@
       });
       if (!dispatchRecord) { clearPreparedMessage(provider, sendComposer, item, restoredFiles); return false; }
       view.render();
-
       dom.dispatchEnterKey(sendComposer, window);
+      await delay(600);
+      const sendButton = provider.findSendButton(sendComposer, document, window);
+      if (sendButton && !provider.findStopButton(sendComposer, document, window) && dom.composerTextMatchesQueued(provider.getComposerText(sendComposer), item.text)) {
+        sendButton.click();
+      }
       sent = await waitForProcessingStart(sendComposer, item.text, provider, { busyBefore });
       if (!sent) {
         clearPreparedMessage(provider, composer, item, restoredFiles);

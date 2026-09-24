@@ -67,3 +67,56 @@ test('queued item is staged only after the one-second preparation delay', () => 
   assert.ok(delayIndex >= 0);
   assert.ok(stageIndex > delayIndex);
 });
+
+test('isElementVisible and isButtonReady recognize connected elements in hidden background tabs', () => {
+  const win = {
+    document: { visibilityState: 'hidden' },
+    getComputedStyle: () => ({ display: 'block', visibility: 'visible', pointerEvents: 'auto' }),
+  };
+  const zeroRectElement = {
+    isConnected: true,
+    ownerDocument: win.document,
+    getBoundingClientRect: () => ({ width: 0, height: 0 }),
+  };
+  assert.equal(dom.isElementVisible(zeroRectElement, win), true);
+
+  const readyButton = {
+    ...zeroRectElement,
+    disabled: false,
+    getAttribute: () => null,
+  };
+  assert.equal(dom.isButtonReady(readyButton, win), true);
+
+  // Hidden styled element in background tab should still be false
+  const hiddenStyleWin = {
+    document: { visibilityState: 'hidden' },
+    getComputedStyle: () => ({ display: 'none', visibility: 'hidden' }),
+  };
+  assert.equal(dom.isElementVisible(zeroRectElement, hiddenStyleWin), false);
+});
+
+test('setComposerText emits InputEvent with bubbles: true even when execCommand succeeds', () => {
+  const events = [];
+  class FakeEvent {
+    constructor(type, options = {}) { this.type = type; Object.assign(this, options); }
+  }
+  const composer = {
+    tagName: 'DIV',
+    isContentEditable: true,
+    textContent: '',
+    ownerDocument: {
+      defaultView: { Event: FakeEvent, InputEvent: FakeEvent },
+      execCommand: () => true, // simulate successful execCommand
+      getSelection: () => ({ removeAllRanges() {}, addRange() {} }),
+      createRange: () => ({ selectNodeContents() {} }),
+    },
+    focus() {},
+    dispatchEvent(event) { events.push(event); return true; },
+  };
+
+  assert.equal(dom.setComposerText(composer, 'Hello background world'), true);
+  assert.deepEqual(events.map(e => [e.type, e.bubbles, e.inputType, e.data]), [
+    ['input', true, 'insertText', 'Hello background world'],
+  ]);
+});
+

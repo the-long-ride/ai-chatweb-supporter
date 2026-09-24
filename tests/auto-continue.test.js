@@ -166,3 +166,17 @@ test('rerendering the same last response does not duplicate the continuation', (
   assert.equal(controller.scan(), false);
   assert.equal(provider.send.clicks, 1);
 });
+
+test('scan continues in hidden background tab with zero rects', () => {
+  const provider = makeProvider('chatgpt');
+  const doc = docWith([node('Status: Incompleted')]);
+  doc.visibilityState = 'hidden';
+  provider.send.ownerDocument = doc;
+  provider.send.getBoundingClientRect = () => ({ width: 0, height: 0 });
+  const bgWin = { ...win, document: doc };
+
+  const controller = autoContinue.createController({ provider, doc, win: bgWin, textEnabled: true, matchText: 'Incompleted' });
+  assert.equal(controller.scan(), true);
+  assert.equal(provider.send.clicks, 1);
+});
+
