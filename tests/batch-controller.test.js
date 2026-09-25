@@ -194,3 +194,45 @@ test('batch header controls preserve native visibility and do not impose icon pa
   assert.doesNotMatch(iconBlock, /padding:/);
   assert.match(iconBlock, /pointer-events:\s*none/);
 });
+
+
+test('selection mode blocks double-click rename and ignores the second click toggle', () => {
+  const { controller, rows } = harness();
+  controller.reconcile();
+  controller.enterSelectionMode();
+
+  const target = {
+    closest(selector) {
+      if (selector === '[data-ai-chatweb-batch-select]') return null;
+      if (selector === '[data-ai-chatweb-batch-row]') return rows[0];
+      return null;
+    },
+  };
+
+  controller.onSectionClick({
+    target,
+    detail: 1,
+    preventDefault() {},
+    stopPropagation() {},
+    stopImmediatePropagation() {},
+  });
+  controller.onSectionClick({
+    target,
+    detail: 2,
+    preventDefault() {},
+    stopPropagation() {},
+    stopImmediatePropagation() {},
+  });
+  assert.deepEqual([...controller.selection], ['a']);
+
+  let prevented = false;
+  let stopped = false;
+  controller.onSectionDoubleClick({
+    target,
+    preventDefault() { prevented = true; },
+    stopPropagation() { stopped = true; },
+    stopImmediatePropagation() { stopped = true; },
+  });
+  assert.equal(prevented, true);
+  assert.equal(stopped, true);
+});

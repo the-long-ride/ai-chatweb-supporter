@@ -26,6 +26,7 @@
       this.observer = null;
       this.frame = 0;
       this.boundSectionClick = (event) => this.onSectionClick(event);
+      this.boundSectionDoubleClick = (event) => this.onSectionDoubleClick(event);
     }
     resolveProvider() { return this.registry?.getProvider?.(this.win?.location?.href || '') || null; }
     reconcile() {
@@ -39,9 +40,16 @@
       if (!nextSection) { if (this.selectionMode) this.exitSelectionMode(); this.detachSection(); return; }
       if (nextSection !== this.section) {
         const old = this.section;
-        if (old) { old.removeEventListener?.('click', this.boundSectionClick, true); this.dom.cleanupRows?.(old); }
+        if (old) {
+          old.removeEventListener?.('click', this.boundSectionClick, true);
+          old.removeEventListener?.('dblclick', this.boundSectionDoubleClick, true);
+          this.dom.cleanupRows?.(old);
+        }
         this.section = nextSection;
-        if (this.selectionMode) this.section.addEventListener?.('click', this.boundSectionClick, true);
+        if (this.selectionMode) {
+          this.section.addEventListener?.('click', this.boundSectionClick, true);
+          this.section.addEventListener?.('dblclick', this.boundSectionDoubleClick, true);
+        }
       }
       this.header = this.adapter.findConversationHeader?.(this.section) || this.section;
       const template = this.adapter.getNativeButtonTemplate?.(this.section) || null;
@@ -50,7 +58,7 @@
       if (this.selectionMode) { this.section.setAttribute?.('data-ai-chatweb-batch-mode', 'true'); this.decorateRows(); }
       this.renderHeaderControls(template);
     }
-    detachSection() { if (this.section) { this.section.removeEventListener?.('click', this.boundSectionClick, true); this.dom.cleanupRows?.(this.section); } this.section = null; this.header = null; this.controls = null; }
+    detachSection() { if (this.section) { this.section.removeEventListener?.('click', this.boundSectionClick, true); this.section.removeEventListener?.('dblclick', this.boundSectionDoubleClick, true); this.dom.cleanupRows?.(this.section); } this.section = null; this.header = null; this.controls = null; }
     renderHeaderControls(template = this.adapter?.getNativeButtonTemplate?.(this.section) || null) {
       if (!this.controls) return;
       const buttons = [];
@@ -63,11 +71,32 @@
       }
       this.controls.replaceChildren?.(...buttons.filter(Boolean));
     }
-    enterSelectionMode() { if (!this.section || !this.adapter || this.selectionMode) return; this.selectionMode = true; this.section.setAttribute?.('data-ai-chatweb-batch-mode', 'true'); this.section.addEventListener?.('click', this.boundSectionClick, true); this.decorateRows(); this.renderHeaderControls(); }
-    exitSelectionMode() { this.selectionMode = false; this.busy = false; core.clearSelection(this.selection); if (this.section) { this.section.removeEventListener?.('click', this.boundSectionClick, true); this.section.removeAttribute?.('data-ai-chatweb-batch-mode'); this.dom.cleanupRows?.(this.section); } if (this.controls && this.adapter) this.renderHeaderControls(); }
+    enterSelectionMode() { if (!this.section || !this.adapter || this.selectionMode) return; this.selectionMode = true; this.section.setAttribute?.('data-ai-chatweb-batch-mode', 'true'); this.section.addEventListener?.('click', this.boundSectionClick, true); this.section.addEventListener?.('dblclick', this.boundSectionDoubleClick, true); this.decorateRows(); this.renderHeaderControls(); }
+    exitSelectionMode() { this.selectionMode = false; this.busy = false; core.clearSelection(this.selection); if (this.section) { this.section.removeEventListener?.('click', this.boundSectionClick, true); this.section.removeEventListener?.('dblclick', this.boundSectionDoubleClick, true); this.section.removeAttribute?.('data-ai-chatweb-batch-mode'); this.dom.cleanupRows?.(this.section); } if (this.controls && this.adapter) this.renderHeaderControls(); }
     decorateRows() { if (!this.section || !this.adapter) return; const template = this.adapter.getNativeButtonTemplate?.(this.section) || null; for (const row of this.adapter.listConversationRows?.(this.section) || []) { const id = this.adapter.getConversationId?.(row); if (!id) continue; this.dom.decorateRow?.(this.doc, row, { selected: this.selection.has(id), template, onToggle: () => this.toggleRow(row) }); } }
     toggleRow(row) { if (!row || this.busy || !this.selectionMode) return false; const id = this.adapter?.getConversationId?.(row); if (!id) return false; const selected = core.toggleSelection(this.selection, id); this.dom.setRowSelected?.(row, selected); this.renderHeaderControls(); return selected; }
-    onSectionClick(event) { if (!this.selectionMode || this.busy) return; const selectAttr = this.dom?.SELECT_ATTR || 'data-ai-chatweb-batch-select'; if (event?.target?.closest?.(`[${selectAttr}]`)) return; let row = event?.target?.closest?.('[data-ai-chatweb-batch-row]') || null; if (!row) row = (this.adapter?.listConversationRows?.(this.section) || []).find((candidate) => candidate === event?.target || candidate?.contains?.(event?.target)) || null; if (!row) return; event.preventDefault?.(); event.stopPropagation?.(); event.stopImmediatePropagation?.(); this.toggleRow(row); }
+    onSectionClick(event) {
+      if (!this.selectionMode || this.busy) return;
+      const selectAttr = this.dom?.SELECT_ATTR || 'data-ai-chatweb-batch-select';
+      if (event?.target?.closest?.(`[${selectAttr}]`)) return;
+      let row = event?.target?.closest?.('[data-ai-chatweb-batch-row]') || null;
+      if (!row) row = (this.adapter?.listConversationRows?.(this.section) || []).find((candidate) => candidate === event?.target || candidate?.contains?.(event?.target)) || null;
+      if (!row) return;
+      event.preventDefault?.();
+      event.stopPropagation?.();
+      event.stopImmediatePropagation?.();
+      if (Number(event?.detail) > 1) return;
+      this.toggleRow(row);
+    }
+    onSectionDoubleClick(event) {
+      if (!this.selectionMode) return;
+      let row = event?.target?.closest?.('[data-ai-chatweb-batch-row]') || null;
+      if (!row) row = (this.adapter?.listConversationRows?.(this.section) || []).find((candidate) => candidate === event?.target || candidate?.contains?.(event?.target)) || null;
+      if (!row) return;
+      event.preventDefault?.();
+      event.stopPropagation?.();
+      event.stopImmediatePropagation?.();
+    }
     findRowById(id) { return (this.adapter?.listConversationRows?.(this.section) || []).find((row) => this.adapter.getConversationId?.(row) === id) || null; }
     async runAction(action, options = {}) {
       const ids = [...this.selection]; if (!ids.length || this.busy || !this.adapter) return null;
