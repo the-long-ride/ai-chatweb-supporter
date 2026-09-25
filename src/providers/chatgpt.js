@@ -50,12 +50,35 @@
     if(dom.getComposerText(target).trim()!==STREAM_ERROR_CONTINUATION){handledStreamErrors.add(error);streamErrorStates.delete(error);return false;}
     sendButton.click?.(); state.phase='clicked'; state.clickedAt=Date.now(); return true;
   }
-  function findConversationSection(doc=globalThis.document){return doc?.querySelector?.('#history')||null;}
-  function findConversationHeader(section){const shell=section?.closest?.('[class*="sidebar-expando-section"]');return shell?.querySelector?.('[class*="sidebar-expando-section-header"]')||section?.parentElement?.previousElementSibling||null;}
-  function listConversationRows(section){return Array.from(section?.querySelectorAll?.('a[data-sidebar-item="true"][href*="/c/"],a[href*="/c/"]')||[]);}
+  function findConversationSection(doc=globalThis.document){
+    return doc?.querySelector?.('section[data-app-action-sidebar-section][data-app-action-sidebar-section-heading="Recents"]')
+      ||doc?.querySelector?.('[data-app-action-sidebar-section-heading="Recents"]')
+      ||doc?.querySelector?.('#history')
+      ||null;
+  }
+  function findConversationHeader(section){
+    const toggle=section?.querySelector?.('[data-app-action-sidebar-section-toggle]');
+    if(toggle){
+      let element=toggle.parentElement||null;
+      while(element&&element!==section){
+        if(element.querySelector?.('button[aria-label="Filter chats and work"],button[aria-label="Chat sidebar options"],button[aria-label="New chat"]'))return element;
+        element=element.parentElement||null;
+      }
+    }
+    const shell=section?.closest?.('[class*="sidebar-expando-section"]');
+    return shell?.querySelector?.('[class*="sidebar-expando-section-header"]')||section?.parentElement?.previousElementSibling||null;
+  }
+  function listConversationRows(section){
+    const keyed=Array.from(section?.querySelectorAll?.('[data-sidebar-chatgpt-conversation-key]')||[]);
+    if(keyed.length)return keyed.filter((row)=>Boolean(getConversationAnchor(row)));
+    return Array.from(section?.querySelectorAll?.('a[data-sidebar-item="true"][href*="/c/"],a[href*="/c/"]')||[]);
+  }
   function getConversationAnchor(row){if(row?.matches?.('a[href*="/c/"]'))return row;return row?.querySelector?.('a[href*="/c/"]')||null;}
   function getConversationId(row){const anchor=getConversationAnchor(row);const fromHref=extractConversationId(anchor?.getAttribute?.('href')||anchor?.href||'');if(fromHref)return fromHref;return row?.querySelector?.('[data-conversation-options-trigger]')?.getAttribute?.('data-conversation-options-trigger')||null;}
-  function getNativeButtonTemplate(section){const header=findConversationHeader(section);return header?.querySelector?.('button[data-trailing-button],a[data-trailing-button]')||null;}
+  function getNativeButtonTemplate(section){
+    const header=findConversationHeader(section)||section;
+    return header?.querySelector?.('button[aria-label="Filter chats and work"],button[aria-label="Chat sidebar options"],button[aria-label="New chat"],button[data-trailing-button],a[data-trailing-button]')||null;
+  }
   function cookieValue(doc,name){const text=String(doc?.cookie||'');for(const part of text.split(';')){const [key,...rest]=part.trim().split('=');if(key===name){try{return decodeURIComponent(rest.join('='));}catch{return rest.join('=');}}}return null;}
   async function resolveBatchAuthHeaders(context={}){
     if(context.authHeaders)return context.authHeaders;

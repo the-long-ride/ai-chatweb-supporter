@@ -129,3 +129,50 @@ test('Grok batch extracts ids and calls soft-delete endpoint', async () => {
 test('provider batch requests throw on non-2xx responses', async () => {
   await assert.rejects(() => grok.batch.deleteConversation('bad', { fetch: async () => response({ ok: false, status: 500 }) }), /500/);
 });
+
+
+test('ChatGPT batch discovers the new Recents section and keyed conversation rows', () => {
+  const rowAnchor = anchor('/c/recent-123');
+  const row = {
+    matches() { return false; },
+    querySelector(selector) {
+      if (selector.includes('a[href*="/c/"]')) return rowAnchor;
+      return null;
+    },
+  };
+
+  const filterButton = { parentElement: null };
+  const header = {
+    parentElement: null,
+    querySelector(selector) {
+      if (selector.includes('button[aria-label="Filter chats and work"]')) return filterButton;
+      return null;
+    },
+  };
+  filterButton.parentElement = header;
+
+  const toggle = { parentElement: header };
+  const section = {
+    querySelector(selector) {
+      if (selector.includes('data-app-action-sidebar-section-toggle')) return toggle;
+      return null;
+    },
+    querySelectorAll(selector) {
+      if (selector.includes('data-sidebar-chatgpt-conversation-key')) return [row];
+      return [];
+    },
+  };
+
+  const doc = {
+    querySelector(selector) {
+      if (selector.includes('data-app-action-sidebar-section-heading="Recents"')) return section;
+      return null;
+    },
+  };
+
+  assert.equal(chatgpt.batch.findConversationSection(doc), section);
+  assert.equal(chatgpt.batch.findConversationHeader(section), header);
+  assert.deepEqual(chatgpt.batch.listConversationRows(section), [row]);
+  assert.equal(chatgpt.batch.getConversationId(row), 'recent-123');
+  assert.equal(chatgpt.batch.getNativeButtonTemplate(section), filterButton);
+});
