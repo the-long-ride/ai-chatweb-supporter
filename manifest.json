@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "AI Chat Web Supporter",
   "version": "1.1.7",
-  "description": "Practical local tools for AI chat websites: queued prompts, automatic continuations, Claude tool continuation, and sidebar resizing on ChatGPT and Grok.",
+  "description": "Practical local tools for AI chat websites: queued prompts, automatic continuations, Claude tool continuation, and sidebar resizing on Grok.",
   "icons": {
     "16": "icons/icon16.png",
     "32": "icons/icon32.png",
@@ -33,9 +33,6 @@
       "js": [
         "src/shared/constants.js",
         "src/shared/storage.js",
-        "src/sidebar/core.js",
-        "src/sidebar/dom.js",
-        "src/sidebar/controller.js",
         "src/queue/core.js",
         "src/queue/dom.js",
         "src/queue/attachments.js",
@@ -53,7 +50,6 @@
         "src/queue/runtime.js"
       ],
       "css": [
-        "src/sidebar/styles.css",
         "src/queue/styles.css",
         "src/batch/styles.css"
       ],

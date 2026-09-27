@@ -4,6 +4,9 @@ All notable changes to AI Chat Web Supporter are documented here by released ver
 
 ## Unreleased
 
+### Changed
+- Removed the extension's ChatGPT sidebar resizer because ChatGPT now provides native sidebar resizing; Grok sidebar resizing remains available.
+
 ## [1.1.7] - 2026-09-14
 
 ### Changed

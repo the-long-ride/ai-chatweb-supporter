@@ -13,7 +13,7 @@ A dependency-free Chromium extension with local productivity tools for **ChatGPT
 - On **ChatGPT, Claude, and Grok**, optionally match configurable text in the latest finished AI response and send `continue remaining works` once for that response.
 - On **ChatGPT**, message-stream errors can trigger the same continuation through a separate popup toggle.
 - Background automation can optionally keep the system awake. Frozen supported tabs may be temporarily activated while the machine is locked or idle, then the previous active tab is restored.
-- Resize **ChatGPT and Grok sidebars** from **220–700 px** with independent saved widths; Claude has no sidebar resizing.
+- Resize **Grok's sidebar** from **220–700 px** with a saved width. **ChatGPT uses its native sidebar resizing**, so the extension no longer injects a resize handle there; Claude has no extension sidebar resizing.
 - Popup settings include explicit light/dark mode and the installed version read from the extension manifest.
 - Settings and queue state are stored in `chrome.storage.local`.
 
